@@ -1,41 +1,57 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const cron = require('node-cron');
+const mongoose = require('mongoose'); // Tambahan library database
 
 const app = express();
 app.use(express.json());
 
-// PERBAIKAN: Menggunakan path.join agar Render 100% tidak akan "Not Found"
+// Menggunakan path.join agar file public bisa diakses
 app.use(express.static(path.join(__dirname, 'public'))); 
 
-const DB_FILE = path.join(__dirname, 'database.json');
-const API_KEY = process.env.GEMINI_API_KEY || "MASUKKAN_API_KEY_ANDA_DISINI";
+const API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6LKVFBlIaG2bN0an_0i-GhbBT6ResjWfN1fnousol4Xxg";
+const MONGO_URI = process.env.MONGO_URI; // Akan kita atur dari Render
 
-// Inisialisasi Database JSON sederhana jika belum ada
-if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify({
-        topics: [
-            "E-Sports Update & Meta Hero Terbaru", 
-            "Review Teknologi Engine Game 2025", 
-            "Fakta dan Rahasia Lore Game AAA"
-        ],
-        articles: [],
-        dailyGenerated: 0,
-        lastRunDate: new Date().toLocaleDateString('id-ID'),
-        tgToken: "",
-        tgChatId: "",
-        autoPilotOn: false,
-        isBotWorking: false
-    }, null, 2));
+// --- SETUP DATABASE MONGODB ---
+if (!MONGO_URI) {
+    console.error("❌ Peringatan: MONGO_URI belum diatur di Render!");
+} else {
+    mongoose.connect(MONGO_URI)
+        .then(() => console.log('✅ Terhubung ke Cloud Database MongoDB'))
+        .catch(err => console.error('❌ Gagal koneksi MongoDB:', err));
 }
 
-function getDB() {
-    return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+// Skema Struktur Database di Cloud
+const dbSchema = new mongoose.Schema({
+    appId: { type: String, default: 'gamenews-bot' },
+    topics: { type: [String], default: [
+        "E-Sports Update & Meta Hero Terbaru", 
+        "Review Teknologi Engine Game 2025", 
+        "Fakta dan Rahasia Lore Game AAA"
+    ]},
+    articles: { type: Array, default: [] },
+    dailyGenerated: { type: Number, default: 0 },
+    lastRunDate: { type: String, default: () => new Date().toLocaleDateString('id-ID') },
+    tgToken: { type: String, default: "" },
+    tgChatId: { type: String, default: "" },
+    autoPilotOn: { type: Boolean, default: false },
+    isBotWorking: { type: Boolean, default: false }
+});
+
+const AppState = mongoose.model('AppState', dbSchema);
+
+// Fungsi Mengambil Data dari Cloud Database
+async function getDB() {
+    let state = await AppState.findOne({ appId: 'gamenews-bot' });
+    if (!state) {
+        state = await AppState.create({ appId: 'gamenews-bot' });
+    }
+    return state;
 }
 
-function saveDB(data) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+// Fungsi Menyimpan Data ke Cloud Database
+async function saveDB(state) {
+    await state.save();
 }
 
 async function sendTelegramAlert(article, db) {
@@ -58,14 +74,14 @@ async function sendTelegramAlert(article, db) {
 }
 
 async function generateArticleTask() {
-    let db = getDB();
+    let db = await getDB();
     
     // Reset limit harian jika berganti hari
     const today = new Date().toLocaleDateString('id-ID');
     if (db.lastRunDate !== today) {
         db.dailyGenerated = 0;
         db.lastRunDate = today;
-        saveDB(db);
+        await saveDB(db);
     }
 
     // Validasi Limit
@@ -75,7 +91,7 @@ async function generateArticleTask() {
 
     // Tandai bot sedang sibuk agar tidak double task
     db.isBotWorking = true;
-    saveDB(db);
+    await saveDB(db);
 
     const topic = db.topics[Math.floor(Math.random() * db.topics.length)];
     console.log(`[BOT] Memulai riset mendalam untuk topik: ${topic}...`);
@@ -128,11 +144,11 @@ async function generateArticleTask() {
                 date: new Date().toISOString()
             };
 
-            // Ambil state DB terbaru (untuk jaga-jaga ada perubahan selama fetch)
-            db = getDB();
+            // Ambil state DB terbaru
+            db = await getDB();
             db.articles.push(newArticle);
             db.dailyGenerated++;
-            saveDB(db);
+            await saveDB(db);
             
             console.log(`[BOT] Sukses generate artikel: ${newArticle.title}`);
             sendTelegramAlert(newArticle, db);
@@ -142,15 +158,18 @@ async function generateArticleTask() {
         console.error("[BOT] Error saat generate artikel:", error);
     } finally {
         // Bebaskan status bot
-        db = getDB();
+        db = await getDB();
         db.isBotWorking = false;
-        saveDB(db);
+        await saveDB(db);
     }
 }
 
-// Cron Job: Berjalan setiap 30 Menit mengecek apakah bot perlu bekerja
-cron.schedule('*/30 * * * *', () => {
-    const db = getDB();
+// Cron Job
+cron.schedule('*/30 * * * *', async () => {
+    // Pastikan koneksi DB tersedia sebelum check cron
+    if (mongoose.connection.readyState !== 1) return; 
+
+    const db = await getDB();
     if (db.autoPilotOn && db.dailyGenerated < 10 && !db.isBotWorking) {
         console.log("[CRON] Auto-Pilot aktif, memicu task riset...");
         generateArticleTask();
@@ -159,71 +178,72 @@ cron.schedule('*/30 * * * *', () => {
 
 // --- API ROUTES UNTUK DASHBOARD ---
 
-app.get('/api/state', (req, res) => {
-    res.json(getDB());
+app.get('/api/state', async (req, res) => {
+    try {
+        const db = await getDB();
+        res.json(db);
+    } catch (e) { res.status(500).json({error: "Database error"}); }
 });
 
 app.post('/api/force', async (req, res) => {
-    const db = getDB();
+    const db = await getDB();
     if (db.isBotWorking) return res.status(400).json({ error: "Bot sedang sibuk" });
     if (db.dailyGenerated >= 10) return res.status(400).json({ error: "Limit Harian Tercapai" });
     if (db.topics.length === 0) return res.status(400).json({ error: "Topik kosong" });
     
-    // Picu asynchronous
     generateArticleTask();
     res.json({ message: "Task riset dipaksa mulai." });
 });
 
-app.post('/api/settings/autopilot', (req, res) => {
-    const db = getDB();
+app.post('/api/settings/autopilot', async (req, res) => {
+    const db = await getDB();
     db.autoPilotOn = req.body.status;
-    saveDB(db);
+    await saveDB(db);
     res.json({ success: true });
 });
 
-app.post('/api/settings/telegram', (req, res) => {
-    const db = getDB();
+app.post('/api/settings/telegram', async (req, res) => {
+    const db = await getDB();
     db.tgToken = req.body.tgToken;
     db.tgChatId = req.body.tgChatId;
-    saveDB(db);
+    await saveDB(db);
     res.json({ success: true });
 });
 
-app.post('/api/topics/add', (req, res) => {
-    const db = getDB();
+app.post('/api/topics/add', async (req, res) => {
+    const db = await getDB();
     if (req.body.topic) {
         db.topics.push(req.body.topic);
-        saveDB(db);
+        await saveDB(db);
     }
     res.json({ success: true });
 });
 
-app.post('/api/topics/remove', (req, res) => {
-    const db = getDB();
+app.post('/api/topics/remove', async (req, res) => {
+    const db = await getDB();
     db.topics.splice(req.body.index, 1);
-    saveDB(db);
+    await saveDB(db);
     res.json({ success: true });
 });
 
-app.post('/api/articles/approve', (req, res) => {
-    const db = getDB();
+app.post('/api/articles/approve', async (req, res) => {
+    const db = await getDB();
     const idx = db.articles.findIndex(a => a.id === req.body.id);
     if (idx !== -1) {
-        db.articles[idx].content = req.body.content; // Simpan hasil editan user
+        db.articles[idx].content = req.body.content;
         db.articles[idx].status = 'approved';
-        saveDB(db);
+        await saveDB(db);
     }
     res.json({ success: true });
 });
 
-app.post('/api/articles/reject', (req, res) => {
-    const db = getDB();
+app.post('/api/articles/reject', async (req, res) => {
+    const db = await getDB();
     db.articles = db.articles.filter(a => a.id !== req.body.id);
-    saveDB(db);
+    await saveDB(db);
     res.json({ success: true });
 });
 
-// Route penangkap jika user mencoba akses yang tidak ada, paksa kembali ke index.html
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
