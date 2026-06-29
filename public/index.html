@@ -3,227 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GameNews AI - Jurnalis Otomatis 24/7</title>
+    <title>GameNews AI - Editor Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
         
-        .inline-source { 
-            margin-top: 16px; margin-bottom: 20px; padding: 12px 16px; 
-            background-color: #eff6ff; border-left: 4px solid #3b82f6; 
-            border-radius: 0 8px 8px 0; font-size: 0.875rem; color: #1e293b; 
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; 
         }
-        .inline-source a { color: #2563eb; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 8px;}
-        .inline-source a:hover { text-decoration: underline; color: #1d4ed8; }
         
+        h1, h2, h3, .heading-font {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        /* Elemen Kutipan Sumber dari AI */
+        .inline-source { 
+            margin: 20px 0; padding: 14px 18px; 
+            background: linear-gradient(to right, #eff6ff, #ffffff);
+            border-left: 4px solid #4f46e5; 
+            border-radius: 0 12px 12px 0; font-size: 0.875rem; color: #334155;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .inline-source a { color: #4f46e5; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;}
+        .inline-source a:hover { color: #3730a3; text-decoration: underline; }
+        
+        /* Animasi Progress Bar */
         @keyframes loading-slide {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(200%); }
         }
-        .progress-bar-animated { animation: loading-slide 2s infinite linear; }
+        .progress-bar-animated { animation: loading-slide 1.5s infinite ease-in-out; }
         
-        /* Utility untuk menyembunyikan scrollbar tapi tetap bisa di-scroll */
+        /* Custom Scrollbar Elegan */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Animasi overlay mobile */
-        .sidebar-overlay-hidden { opacity: 0; pointer-events: none; }
-        .sidebar-overlay-visible { opacity: 1; pointer-events: auto; }
+        /* Modal Backdrop Blur */
+        .glass-backdrop {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
     </style>
 </head>
-<body class="text-gray-800 flex flex-col md:flex-row h-screen overflow-hidden">
+<body class="text-slate-800 flex flex-col md:flex-row h-screen overflow-hidden selection:bg-indigo-200 selection:text-indigo-900">
 
-    <!-- Navbar Mobile (Ditampilkan hanya di layar kecil) -->
-    <div class="md:hidden flex items-center justify-between bg-white border-b border-gray-200 px-6 py-4 shadow-sm z-30 flex-shrink-0">
+    <!-- Mobile Navbar -->
+    <div class="md:hidden flex items-center justify-between bg-slate-900 border-b border-slate-800 px-6 py-4 shadow-md z-30 flex-shrink-0">
         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                <i class="fa-solid fa-robot text-white text-sm"></i>
+            <div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-bolt text-white text-sm"></i>
             </div>
-            <h1 class="font-bold text-lg text-gray-900 leading-tight">GameNews AI</h1>
+            <h1 class="heading-font font-bold text-lg text-white tracking-tight">GameNews AI</h1>
         </div>
-        <button onclick="toggleMobileMenu()" class="text-gray-600 hover:text-blue-600 focus:outline-none transition">
+        <button onclick="toggleMobileMenu()" class="text-slate-300 hover:text-white focus:outline-none transition">
             <i class="fas fa-bars text-2xl"></i>
         </button>
     </div>
 
-    <!-- Overlay Mobile Menu -->
-    <div id="mobile-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-gray-900/50 z-40 sidebar-overlay-hidden transition-opacity duration-300 md:hidden backdrop-blur-sm"></div>
+    <!-- Mobile Overlay -->
+    <div id="mobile-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 glass-backdrop z-40 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden"></div>
 
-    <!-- Sidebar Kiri -->
-    <aside id="sidebar" class="w-80 bg-white shadow-xl flex flex-col z-50 absolute md:relative h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300">
-        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-                    <i class="fa-solid fa-robot text-white text-xl"></i>
+    <!-- Sidebar Kiri (Dark Theme) -->
+    <aside id="sidebar" class="w-80 bg-slate-900 text-slate-300 shadow-2xl flex flex-col z-50 absolute md:relative h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out border-r border-slate-800">
+        <!-- Logo Area -->
+        <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-bolt text-white text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg text-gray-900 leading-tight">GameNews AI</h1>
-                    <p class="text-[10px] text-blue-600 font-bold tracking-wider uppercase">Jurnalis Otonom 24/7</p>
+                    <h1 class="heading-font font-bold text-xl text-white tracking-tight leading-tight">GameNews AI</h1>
+                    <p class="text-[10px] text-indigo-400 font-bold tracking-widest uppercase mt-0.5">Auto-Journalist</p>
                 </div>
             </div>
-            <button onclick="toggleMobileMenu()" class="md:hidden text-gray-400 hover:text-red-500 transition"><i class="fas fa-times text-xl"></i></button>
+            <button onclick="toggleMobileMenu()" class="md:hidden text-slate-400 hover:text-white transition"><i class="fas fa-times text-xl"></i></button>
         </div>
 
-        <div class="p-6 flex-1 overflow-y-auto no-scrollbar">
-            <!-- Bot Status Card -->
-            <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl mb-6 relative overflow-hidden shadow-sm">
-                <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Status Sistem Server</h3>
+        <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+            <!-- Server Status Card -->
+            <div class="bg-slate-800/50 border border-slate-700/50 p-5 rounded-2xl mb-8 relative overflow-hidden backdrop-blur-sm">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i class="fas fa-server"></i> Status Engine
+                </h3>
                 <div id="bot-status-badge" class="flex items-center text-sm font-medium transition-all">
-                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                    <span class="text-green-600 font-bold">Standby (Idle)</span>
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-3 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+                    <span class="text-emerald-400 font-semibold tracking-wide">Sistem Idle</span>
                 </div>
                 
-                <div id="bot-timer-container" class="hidden mt-4 pt-4 border-t border-slate-200">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-semibold text-blue-600 flex items-center gap-2">
-                            <i class="fas fa-cog fa-spin"></i> Meriset Fakta...
+                <div id="bot-timer-container" class="hidden mt-5 pt-5 border-t border-slate-700/50">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-semibold text-indigo-400 flex items-center gap-2">
+                            <i class="fas fa-cog fa-spin"></i> Mengekstrak Data...
                         </span>
-                        <span id="bot-timer-seconds" class="text-sm font-mono font-bold text-slate-700 bg-blue-100 px-2 py-0.5 rounded shadow-sm">00:00</span>
+                        <span id="bot-timer-seconds" class="text-xs font-mono font-bold text-white bg-indigo-500/20 px-2.5 py-1 rounded-lg border border-indigo-500/30">00:00</span>
                     </div>
-                    <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden relative">
-                        <div class="bg-blue-500 h-1.5 rounded-full w-1/2 progress-bar-animated absolute left-0"></div>
+                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden relative border border-slate-700">
+                        <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full w-1/2 progress-bar-animated absolute left-0"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Auto-Pilot Toggle -->
-            <div class="flex items-center justify-between bg-white border border-gray-200 p-4 rounded-xl mb-6 shadow-sm hover:shadow transition">
+            <div class="flex items-center justify-between bg-slate-800/30 border border-slate-700/50 p-4 rounded-2xl mb-8 hover:bg-slate-800/50 transition">
                 <div>
-                    <h3 class="text-sm font-bold text-gray-800">Auto-Pilot 24 Jam</h3>
-                    <p class="text-[11px] text-gray-500 mt-1">Bot jalan otomatis per jadwal</p>
+                    <h3 class="text-sm font-semibold text-white">Auto-Pilot 24/7</h3>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Jadwal riset otomatis</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="autopilot-toggle" class="sr-only peer" onchange="toggleAutoPilot(this.checked)">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 shadow-inner"></div>
                 </label>
             </div>
 
-            <!-- Manajemen Topik -->
+            <!-- Topic Management -->
             <div class="mb-6">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Topik Riset Bot</h3>
-                    <span class="bg-slate-200 text-slate-600 text-[10px] px-2 py-0.5 rounded font-bold" id="topic-count">0</span>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-layer-group"></i> Bank Topik
+                    </h3>
+                    <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 text-[10px] px-2 py-0.5 rounded-md font-bold" id="topic-count">0</span>
                 </div>
-                <div class="flex gap-2 mb-3">
-                    <input type="text" id="new-topic" placeholder="Tambah topik riset..." class="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-inner">
-                    <button onclick="addTopic()" class="bg-slate-800 text-white px-3 py-2 rounded-lg hover:bg-slate-700 transition shadow-md"><i class="fas fa-plus"></i></button>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="new-topic" placeholder="Ketik topik baru..." class="flex-1 bg-slate-900 text-sm border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition shadow-inner placeholder-slate-500">
+                    <button onclick="addTopic()" class="bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/20"><i class="fas fa-plus"></i></button>
                 </div>
                 <ul id="topic-list" class="space-y-2"></ul>
             </div>
         </div>
 
-        <div class="p-4 border-t border-gray-100 bg-gray-50">
-            <button onclick="openSettingsModal()" class="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700 hover:text-blue-600 text-sm font-semibold py-2.5 rounded-lg transition shadow-sm">
-                <i class="fa-brands fa-telegram text-blue-500"></i> Pengaturan Telegram
+        <div class="p-5 border-t border-slate-800 bg-slate-900/50">
+            <button onclick="openSettingsModal()" class="w-full flex items-center justify-center gap-2 bg-slate-800 border border-slate-700 hover:border-slate-500 hover:bg-slate-700 text-slate-200 text-sm font-semibold py-3 rounded-xl transition shadow-sm">
+                <i class="fa-brands fa-telegram text-blue-400 text-lg"></i> Konfigurasi Notifikasi
             </button>
         </div>
     </aside>
 
-    <!-- Konten Utama Kanan -->
-    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
-        <header class="bg-white px-6 md:px-8 py-5 border-b border-gray-200 flex justify-between items-center shadow-sm z-10 flex-shrink-0">
-            <h2 class="text-xl md:text-2xl font-bold text-gray-800 tracking-tight">Meja Redaksi</h2>
-            <div class="flex items-center gap-4">
-                <div class="text-right mr-2 md:mr-4 md:border-r border-gray-200 md:pr-6">
-                    <p class="text-[10px] md:text-xs font-semibold text-gray-400 uppercase">Limit Harian (10)</p>
-                    <p class="text-sm md:text-lg font-bold text-gray-800"><span id="limit-counter" class="text-blue-600">0</span> / 10</p>
+    <!-- Konten Utama Kanan (Light Theme) -->
+    <main class="flex-1 flex flex-col h-full relative bg-[#f8fafc]">
+        
+        <!-- Header -->
+        <header class="bg-white px-6 md:px-10 py-5 md:py-6 flex justify-between items-center z-10 flex-shrink-0 sticky top-0">
+            <div>
+                <h2 class="heading-font text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">Meja Redaksi</h2>
+                <p class="text-sm text-slate-500 mt-1 hidden md:block">Kelola dan tinjau artikel yang dihasilkan AI hari ini.</p>
+            </div>
+            <div class="flex items-center gap-5">
+                <div class="text-right border-r border-slate-200 pr-5 hidden md:block">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Limit API Harian</p>
+                    <p class="text-lg font-extrabold text-slate-800 mt-0.5"><span id="limit-counter" class="text-indigo-600">0</span> <span class="text-slate-400 text-sm font-medium">/ 10</span></p>
                 </div>
-                <button onclick="forceGenerate()" id="btn-force" class="bg-blue-600 hover:bg-blue-700 text-white text-sm md:text-base font-semibold py-2.5 px-4 md:px-5 rounded-lg shadow-md shadow-blue-200 transition flex items-center gap-2">
-                    <i class="fa-solid fa-bolt"></i> <span class="hidden md:inline">Paksa Riset</span>
+                <button onclick="forceGenerate()" id="btn-force" class="bg-slate-900 hover:bg-indigo-600 text-white text-sm font-semibold py-3 px-5 md:px-6 rounded-xl shadow-lg shadow-slate-200 hover:shadow-indigo-200 transition-all duration-300 flex items-center gap-2 transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span class="hidden md:inline">Generate Artikel</span>
                 </button>
             </div>
         </header>
 
-        <div class="px-4 md:px-8 pt-6 flex-shrink-0">
-            <div class="flex space-x-1 border-b border-gray-200 overflow-x-auto no-scrollbar">
-                <button onclick="switchTab('pending')" id="tab-pending" class="whitespace-nowrap px-4 md:px-6 py-3 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 transition flex items-center">
-                    <i class="fa-solid fa-hourglass-half mr-2"></i> Perlu Direview <span id="count-pending" class="ml-2 bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold">0</span>
-                </button>
-                <button onclick="switchTab('approved')" id="tab-approved" class="whitespace-nowrap px-4 md:px-6 py-3 font-semibold text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition flex items-center">
-                    <i class="fa-solid fa-check-double mr-2"></i> Siap Publish <span id="count-approved" class="ml-2 bg-green-100 text-green-600 py-0.5 px-2 rounded-full text-xs font-bold">0</span>
-                </button>
+        <!-- Filter & Navigation Bar -->
+        <div class="px-6 md:px-10 py-2 flex-shrink-0">
+            <div class="bg-white rounded-2xl p-2 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2 justify-between items-center">
+                <!-- Tabs -->
+                <div class="flex w-full md:w-auto p-1 bg-slate-50 rounded-xl border border-slate-100">
+                    <button onclick="switchTab('pending')" id="tab-pending" class="flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-indigo-700 bg-white shadow-sm transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-inbox"></i> Antrean <span id="count-pending" class="bg-indigo-100 text-indigo-700 py-0.5 px-2 rounded-md text-[10px] font-bold ml-1">0</span>
+                    </button>
+                    <button onclick="switchTab('approved')" id="tab-approved" class="flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-slate-500 hover:text-slate-700 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check-double"></i> Selesai <span id="count-approved" class="bg-slate-200 text-slate-600 py-0.5 px-2 rounded-md text-[10px] font-bold ml-1">0</span>
+                    </button>
+                </div>
+                
+                <!-- Search & Date Filter -->
+                <div class="flex w-full md:w-auto gap-2">
+                    <div class="relative flex-1 md:w-64">
+                        <i class="fas fa-search absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="text" id="searchFilter" oninput="applyFilters()" placeholder="Cari artikel..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none">
+                    </div>
+                    <input type="date" id="dateFilter" onchange="applyFilters()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-600 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none">
+                </div>
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-8 no-scrollbar" id="article-container">
-            <!-- Loading indicator awal -->
-            <div class="flex justify-center items-center h-full"><i class="fas fa-circle-notch fa-spin text-3xl text-blue-500"></i></div>
+        <!-- Area Artikel -->
+        <div class="flex-1 overflow-y-auto px-6 md:px-10 py-6 custom-scrollbar" id="article-container">
+            <!-- Loading awal -->
+            <div class="flex justify-center items-center h-full"><i class="fas fa-circle-notch fa-spin text-3xl text-indigo-500"></i></div>
         </div>
     </main>
 
     <!-- Modal Pengaturan Telegram -->
-    <div id="settings-modal" class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm hidden flex items-center justify-center z-50 transition-opacity p-4">
-        <div class="bg-[#111827] w-full max-w-md rounded-2xl shadow-2xl p-6 transform transition-all border border-slate-800">
-            <div class="flex items-center mb-6">
-                <i class="fa-brands fa-telegram text-blue-500 text-2xl mr-3"></i>
-                <h3 class="text-xl font-bold text-white">Konfigurasi Telegram</h3>
+    <div id="settings-modal" class="fixed inset-0 glass-backdrop hidden flex items-center justify-center z-[60] transition-opacity p-4 opacity-0 pointer-events-none">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 transform transition-all scale-95 border border-slate-100" id="settings-modal-content">
+            <div class="flex items-center mb-8">
+                <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mr-4 text-blue-500 text-2xl shadow-sm">
+                    <i class="fa-brands fa-telegram"></i>
+                </div>
+                <div>
+                    <h3 class="heading-font text-xl font-bold text-slate-800 leading-tight">Bot Telegram</h3>
+                    <p class="text-xs text-slate-500 mt-1">Notifikasi langsung ke HP Anda.</p>
+                </div>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-5">
                 <div>
-                    <label class="text-xs text-gray-400 mb-1 block">Bot Token (Dari BotFather)</label>
-                    <input type="text" id="tgTokenInput" class="w-full bg-[#1F2937] border border-transparent text-white rounded-xl px-4 py-3 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm placeholder-gray-500" placeholder="123456:ABC-DEF1234ghIkl...">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">Token Bot API</label>
+                    <input type="text" id="tgTokenInput" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-sm placeholder-slate-400" placeholder="Contoh: 123456:ABC-DEF1234...">
                 </div>
                 <div>
-                    <label class="text-xs text-gray-400 mb-1 block">Chat ID / Channel ID</label>
-                    <input type="text" id="tgChatIdInput" class="w-full bg-[#1F2937] border border-transparent text-white rounded-xl px-4 py-3 focus:ring-1 focus:ring-blue-500 focus:outline-none text-sm placeholder-gray-500" placeholder="123456789 atau @channelku">
+                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">Chat ID / Channel</label>
+                    <input type="text" id="tgChatIdInput" class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-sm placeholder-slate-400" placeholder="Contoh: 123456789 atau @channelku">
                 </div>
-                <div class="flex justify-end items-center gap-4 mt-8 pt-4 border-t border-slate-800">
-                    <button onclick="closeModal('settings-modal')" class="text-gray-400 hover:text-white font-medium text-sm transition">Batal</button>
-                    <button id="btn-save-tg" onclick="saveTelegramSettings()" class="bg-[#3B82F6] hover:bg-blue-600 text-white font-bold py-2.5 px-6 rounded-xl transition shadow-lg shadow-blue-900/20 text-sm">Simpan Konfigurasi</button>
+                <div class="flex justify-end items-center gap-3 pt-4 mt-2">
+                    <button onclick="closeModal('settings-modal')" class="text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-5 py-2.5 rounded-xl font-medium text-sm transition-all">Batal</button>
+                    <button id="btn-save-tg" onclick="saveTelegramSettings()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 px-6 rounded-xl transition-all shadow-lg shadow-blue-500/30 text-sm flex items-center gap-2">
+                        <i class="fas fa-save"></i> Simpan Konfigurasi
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Modal Review Artikel -->
-    <div id="review-modal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-2 md:p-4 md:py-10">
-        <div class="bg-white w-full max-w-4xl h-[95vh] md:max-h-full rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-            <div class="px-4 md:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-slate-50 flex-shrink-0">
-                <h3 id="review-title" class="text-base md:text-lg font-bold text-gray-800 line-clamp-1 flex-1 pr-4">Judul Artikel</h3>
-                <button onclick="closeModal('review-modal')" class="text-gray-400 hover:text-red-500 bg-white shadow-sm border border-gray-200 rounded-lg w-8 h-8 flex justify-center items-center transition"><i class="fas fa-times"></i></button>
+    <div id="review-modal" class="fixed inset-0 glass-backdrop hidden flex items-center justify-center z-[60] p-0 md:p-6 opacity-0 pointer-events-none transition-opacity">
+        <div class="bg-white w-full max-w-5xl h-full md:h-[90vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 transform transition-all scale-95" id="review-modal-content">
+            <!-- Header Modal -->
+            <div class="px-6 md:px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white flex-shrink-0 z-10 shadow-sm">
+                <div class="flex-1 pr-6">
+                    <span class="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-widest mb-2 inline-block" id="review-topic-badge">Topik</span>
+                    <h3 id="review-title" class="heading-font text-lg md:text-2xl font-bold text-slate-800 leading-tight">Judul Artikel</h3>
+                </div>
+                <button onclick="closeModal('review-modal')" class="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-full w-10 h-10 flex justify-center items-center transition-all"><i class="fas fa-times text-lg"></i></button>
             </div>
             
             <!-- Area Editor -->
-            <div class="p-4 md:p-8 overflow-y-auto flex-1 bg-white editor-content" id="review-content" contenteditable="true" spellcheck="false" style="outline: none;"></div>
+            <div class="p-6 md:p-10 overflow-y-auto flex-1 bg-slate-50 custom-scrollbar relative">
+                <div class="bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-slate-100 editor-content outline-none max-w-4xl mx-auto" id="review-content" contenteditable="true" spellcheck="false"></div>
+            </div>
             
-            <div class="p-4 border-t border-gray-200 bg-slate-50 flex flex-wrap justify-end gap-3 flex-shrink-0" id="review-actions"></div>
+            <!-- Footer Actions -->
+            <div class="px-6 py-4 border-t border-slate-200 bg-white flex justify-between items-center flex-shrink-0 z-10">
+                <div class="text-xs text-slate-400 font-medium hidden md:block"><i class="fas fa-info-circle mr-1"></i> Teks dapat diedit langsung sebelum disimpan.</div>
+                <div class="flex gap-3 w-full md:w-auto justify-end" id="review-actions"></div>
+            </div>
         </div>
     </div>
 
     <!-- Toast Notification Container -->
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[70] flex flex-col gap-3 pointer-events-none"></div>
 
     <script>
         let currentTab = 'pending';
-        let globalState = { articles: [], topics: [], dailyGenerated: 0, isBotWorking: false, autoPilotOn: false, tgToken: "", tgChatId: "", taskStartTime: 0 };
+        let globalState = { articles: [], topics: [], dailyGenerated: 0, isBotWorking: false, autoPilotOn: false, tgToken: "", tgChatId: "", taskStartTime: 0, currentTopic: "" };
         let timerInterval = null;
         let isTabActive = true;
 
-        // Optimasi: Deteksi tab aktif untuk menghemat API Calls
+        // Auto-pause fetching saat tab tidak aktif
         document.addEventListener("visibilitychange", () => {
             isTabActive = !document.hidden;
-            if(isTabActive) fetchState(); // Paksa update seketika saat user kembali ke tab
+            if(isTabActive) fetchState(); 
         });
 
-        // Toggle Sidebar Khusus Mobile
         function toggleMobileMenu() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('mobile-overlay');
             sidebar.classList.toggle('-translate-x-full');
             
             if (sidebar.classList.contains('-translate-x-full')) {
-                overlay.classList.replace('sidebar-overlay-visible', 'sidebar-overlay-hidden');
+                overlay.classList.remove('opacity-100', 'pointer-events-auto');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
             } else {
-                overlay.classList.replace('sidebar-overlay-hidden', 'sidebar-overlay-visible');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-100', 'pointer-events-auto');
             }
         }
 
-        // Menggunakan waktu tersinkronisasi dari backend
         function updateTimer() {
             if (!globalState.isBotWorking || !globalState.taskStartTime) return;
-            // elapsed dihitung berdasarkan selisih waktu saat ini dengan start time dari database
             const elapsed = Math.floor((Date.now() - globalState.taskStartTime) / 1000);
             if (elapsed < 0) return; 
             
@@ -231,27 +290,29 @@
             const s = String(elapsed % 60).padStart(2, '0');
             const secDisplay = document.getElementById('bot-timer-seconds');
             if(secDisplay) secDisplay.innerText = `${m}:${s}`;
+            
+            const cardTimerDisplay = document.getElementById('card-timer-seconds');
+            if(cardTimerDisplay) cardTimerDisplay.innerText = `${m}:${s}`;
         }
 
         function startTimerIndicator() {
             if (timerInterval) return; 
-            document.getElementById('bot-status-badge').innerHTML = '<i class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i><span class="text-blue-600 font-bold">Bot Sedang Riset...</span>';
+            document.getElementById('bot-status-badge').innerHTML = '<div class="w-2.5 h-2.5 rounded-full bg-indigo-500 mr-3 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse"></div><span class="text-indigo-400 font-semibold tracking-wide">Meriset Artikel</span>';
             document.getElementById('bot-timer-container').classList.remove('hidden');
             
-            updateTimer(); // Panggil manual sekali
-            timerInterval = setInterval(updateTimer, 1000); // Lanjutkan setiap 1 detik
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
         }
 
         function stopTimerIndicator() {
             if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-            document.getElementById('bot-status-badge').innerHTML = '<i class="fas fa-check-circle text-green-500 mr-2"></i><span class="text-green-600 font-bold">Standby (Idle)</span>';
+            document.getElementById('bot-status-badge').innerHTML = '<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-3 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div><span class="text-emerald-400 font-semibold tracking-wide">Sistem Idle</span>';
             document.getElementById('bot-timer-container').classList.add('hidden');
             document.getElementById('bot-timer-seconds').innerText = "00:00";
         }
 
-        // Fetch API Polling dengan pengaman
         async function fetchState() {
-            if (!isTabActive) return; // Jangan banjiri server jika browser di-minimize
+            if (!isTabActive) return; 
             try {
                 const res = await fetch('/api/state');
                 const data = await res.json();
@@ -268,15 +329,17 @@
                 if (data.isBotWorking) {
                     startTimerIndicator();
                     btnForce.disabled = true;
-                    btnForce.classList.replace('bg-blue-600', 'bg-gray-400');
-                    btnForce.classList.replace('hover:bg-blue-700', 'cursor-not-allowed');
-                    btnForce.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="hidden md:inline">Memproses...</span>';
+                    btnForce.classList.replace('bg-slate-900', 'bg-slate-300');
+                    btnForce.classList.replace('hover:bg-indigo-600', 'cursor-not-allowed');
+                    btnForce.classList.replace('text-white', 'text-slate-500');
+                    btnForce.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span class="hidden md:inline">Memproses Data...</span>';
                 } else {
                     stopTimerIndicator();
                     btnForce.disabled = false;
-                    btnForce.classList.replace('bg-gray-400', 'bg-blue-600');
-                    btnForce.classList.replace('cursor-not-allowed', 'hover:bg-blue-700');
-                    btnForce.innerHTML = '<i class="fa-solid fa-bolt"></i> <span class="hidden md:inline">Paksa Riset</span>';
+                    btnForce.classList.replace('bg-slate-300', 'bg-slate-900');
+                    btnForce.classList.replace('cursor-not-allowed', 'hover:bg-indigo-600');
+                    btnForce.classList.replace('text-slate-500', 'text-white');
+                    btnForce.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span class="hidden md:inline">Generate Artikel</span>';
                 }
 
                 // Render Topik
@@ -284,29 +347,28 @@
                 topicList.innerHTML = '';
                 data.topics.forEach((topic, index) => {
                     topicList.innerHTML += `
-                        <li class="flex items-center justify-between text-xs bg-white border border-gray-100 p-2 rounded-lg shadow-sm hover:border-blue-200 transition">
-                            <span class="font-medium text-gray-700 truncate flex-1 mr-2" title="${topic}"><i class="fas fa-hashtag text-gray-300 mr-1.5"></i> ${topic}</span>
-                            <button onclick="removeTopic(${index})" class="text-red-400 hover:text-white hover:bg-red-500 p-1 rounded transition w-6 h-6 flex items-center justify-center"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                        <li class="flex items-center justify-between text-xs bg-slate-800/50 border border-slate-700 p-2.5 rounded-xl hover:border-indigo-500/50 transition-all group">
+                            <span class="font-medium text-slate-300 truncate flex-1 mr-2" title="${topic}"><i class="fas fa-hashtag text-slate-500 mr-2"></i> ${topic}</span>
+                            <button onclick="removeTopic(${index})" class="text-slate-500 hover:text-red-400 p-1 rounded-md transition-colors opacity-0 group-hover:opacity-100"><i class="fas fa-trash-alt"></i></button>
                         </li>
                     `;
                 });
 
-                // Kalkulasi Angka Notifikasi Badge
                 const pending = data.articles.filter(a => a.status === 'pending');
                 const approved = data.articles.filter(a => a.status === 'approved');
                 
                 document.getElementById('count-pending').innerText = pending.length;
                 document.getElementById('count-approved').innerText = approved.length;
                 
-                renderArticles(currentTab === 'pending' ? pending : approved);
+                applyFilters();
                 
             } catch (err) { 
                 console.error(err); 
-                document.getElementById('bot-status-badge').innerHTML = '<i class="fas fa-wifi text-red-500 mr-2"></i><span class="text-red-600 font-bold">Koneksi Hilang</span>';
+                document.getElementById('bot-status-badge').innerHTML = '<div class="w-2.5 h-2.5 rounded-full bg-red-500 mr-3"></div><span class="text-red-400 font-semibold tracking-wide">Koneksi Terputus</span>';
             }
         }
 
-        setInterval(fetchState, 4000); // Polling tiap 4 detik
+        setInterval(fetchState, 4000); 
         fetchState();
 
         function switchTab(tab) {
@@ -314,51 +376,139 @@
             const tabP = document.getElementById('tab-pending');
             const tabA = document.getElementById('tab-approved');
             
-            const activeClass = "whitespace-nowrap px-4 md:px-6 py-3 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 transition flex items-center";
-            const inactiveClass = "whitespace-nowrap px-4 md:px-6 py-3 font-semibold text-sm border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition flex items-center";
+            const activeClassPending = "flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-indigo-700 bg-white shadow-sm transition-all flex items-center justify-center gap-2";
+            const activeClassApproved = "flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-emerald-700 bg-white shadow-sm transition-all flex items-center justify-center gap-2";
+            const inactiveClass = "flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-slate-500 hover:text-slate-700 transition-all flex items-center justify-center gap-2 hover:bg-slate-100";
             
             if(tab === 'pending') {
-                tabP.className = activeClass;
+                tabP.className = activeClassPending;
                 tabA.className = inactiveClass;
+                document.getElementById('count-pending').className = "bg-indigo-100 text-indigo-700 py-0.5 px-2 rounded-md text-[10px] font-bold ml-1";
+                document.getElementById('count-approved').className = "bg-slate-200 text-slate-600 py-0.5 px-2 rounded-md text-[10px] font-bold ml-1";
             } else {
-                tabA.className = activeClass.replace('border-blue-600', 'border-green-600').replace('text-blue-600', 'text-green-600');
+                tabA.className = activeClassApproved;
                 tabP.className = inactiveClass;
+                document.getElementById('count-approved').className = "bg-emerald-100 text-emerald-700 py-0.5 px-2 rounded-md text-[10px] font-bold ml-1";
+                document.getElementById('count-pending').className = "bg-slate-200 text-slate-600 py-0.5 px-2 rounded-md text-[10px] font-bold ml-1";
             }
-            fetchState(); 
+            applyFilters(); 
+        }
+
+        function applyFilters() {
+            const searchText = document.getElementById('searchFilter').value.toLowerCase();
+            const dateVal = document.getElementById('dateFilter').value;
+
+            let filtered = globalState.articles.filter(art => {
+                const matchTab = art.status === currentTab;
+                const matchSearch = art.title.toLowerCase().includes(searchText) || art.topic.toLowerCase().includes(searchText);
+                
+                let matchDate = true;
+                if (dateVal) {
+                    const artDate = new Date(art.date);
+                    const yyyy = artDate.getFullYear();
+                    const mm = String(artDate.getMonth() + 1).padStart(2, '0');
+                    const dd = String(artDate.getDate()).padStart(2, '0');
+                    matchDate = `${yyyy}-${mm}-${dd}` === dateVal;
+                }
+
+                return matchTab && matchSearch && matchDate;
+            });
+
+            renderArticles(filtered);
         }
 
         function renderArticles(articles) {
             const container = document.getElementById('article-container');
+            let htmlStr = "";
             
-            if(articles.length === 0) {
-                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-gray-400 mt-10 md:mt-20"><i class="fa-regular fa-folder-open text-5xl md:text-6xl mb-4 text-gray-300"></i><p class="text-sm md:text-base font-medium text-gray-500">Belum ada artikel di tab ini.</p></div>`;
+            // Render Kartu "Sedang Riset" yang Mewah jika bot sedang bekerja & tab pending aktif
+            if (globalState.isBotWorking && currentTab === 'pending') {
+                htmlStr += `
+                    <div class="relative bg-gradient-to-br from-slate-900 to-indigo-900 rounded-2xl p-6 md:p-8 mb-6 shadow-xl shadow-indigo-900/10 text-white overflow-hidden border border-indigo-500/30">
+                        <!-- Dekorasi Background -->
+                        <div class="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-indigo-500 opacity-20 rounded-full blur-3xl animate-pulse"></div>
+                        <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-purple-500 opacity-20 rounded-full blur-3xl animate-pulse delay-700"></div>
+                        
+                        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-500/30 text-indigo-300">
+                                        <i class="fas fa-robot fa-bounce text-sm"></i>
+                                    </span>
+                                    <span class="text-xs font-bold uppercase tracking-widest text-indigo-300">Menganalisis & Menyusun Draf</span>
+                                </div>
+                                <h3 class="heading-font text-xl md:text-2xl font-bold text-white mb-2 leading-tight">"${globalState.currentTopic || 'Menentukan Topik Terbaik...'}"</h3>
+                                <p class="text-sm text-indigo-200/80 max-w-xl">AI Engine sedang mengumpulkan data terbaru dari internet, memvalidasi fakta, dan menuliskan artikel yang mendalam. Proses ini memakan waktu kurang lebih 1-2 menit.</p>
+                            </div>
+                            
+                            <!-- Timer Kotak Besar -->
+                            <div class="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center min-w-[120px]">
+                                <i class="fas fa-stopwatch text-indigo-400 mb-1"></i>
+                                <span id="card-timer-seconds" class="font-mono text-2xl font-bold text-white tracking-wider">00:00</span>
+                                <span class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Elapsed Time</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Bar Tipis di bawah -->
+                        <div class="absolute bottom-0 left-0 w-full h-1 bg-white/5">
+                            <div class="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 progress-bar-animated w-1/2"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if(articles.length === 0 && !globalState.isBotWorking) {
+                container.innerHTML = htmlStr + `
+                    <div class="h-[60vh] flex flex-col items-center justify-center text-center">
+                        <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6 text-slate-300 shadow-inner">
+                            <i class="fa-regular fa-folder-open text-4xl"></i>
+                        </div>
+                        <h4 class="heading-font text-lg font-bold text-slate-700 mb-1">Area Kerja Kosong</h4>
+                        <p class="text-sm text-slate-500 max-w-sm">Tidak ada artikel yang sesuai dengan filter saat ini, atau bot belum menghasilkan draf baru.</p>
+                    </div>`;
                 return;
             }
             
-            let htmlStr = "";
             articles.reverse().forEach(art => {
-                const dateStr = new Date(art.date).toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+                const dateObj = new Date(art.date);
+                const dateStr = dateObj.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+                const timeStr = dateObj.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+                
+                const btnClass = art.status === 'pending' 
+                    ? "bg-slate-900 hover:bg-indigo-600 text-white border-transparent"
+                    : "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 border shadow-sm";
+
+                const btnIcon = art.status === 'pending' ? '<i class="fas fa-pen-nib mr-2"></i> Tinjau Draf' : '<i class="fas fa-file-code mr-2"></i> Akses Konten';
+
                 htmlStr += `
-                    <div class="bg-white border border-gray-200 p-5 md:p-6 rounded-2xl shadow-sm mb-5 hover:shadow-md transition group">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-                            <span class="bg-blue-50 text-blue-600 border border-blue-100 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider line-clamp-1"><i class="fas fa-tag mr-1"></i> ${art.topic}</span>
-                            <span class="text-xs text-gray-400 font-medium whitespace-nowrap"><i class="far fa-clock"></i> ${dateStr}</span>
-                        </div>
-                        <h3 class="text-lg md:text-xl font-bold text-gray-900 mb-3 leading-snug group-hover:text-blue-600 transition">${art.title}</h3>
-                        <div class="text-sm text-gray-600 mb-6 line-clamp-2 md:line-clamp-3 leading-relaxed">${art.content.replace(/<[^>]+>/g, ' ')}</div>
-                        <div class="flex gap-3">
-                            <button onclick="readArticle('${art.id}')" class="bg-slate-800 hover:bg-slate-900 text-white text-xs md:text-sm font-semibold py-2 px-4 md:px-5 rounded-lg transition shadow-md flex items-center gap-2"><i class="fas fa-book-open"></i> Baca & Review</button>
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 mb-5 group relative overflow-hidden">
+                        <!-- Strip warna status -->
+                        <div class="absolute top-0 left-0 w-1 h-full ${art.status === 'pending' ? 'bg-indigo-500' : 'bg-emerald-500'}"></div>
+                        
+                        <div class="pl-2">
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                                <span class="bg-slate-100 text-slate-600 text-[10px] md:text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-2"><i class="fas fa-tag text-slate-400"></i> ${art.topic}</span>
+                                <div class="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                                    <i class="far fa-calendar-alt"></i> ${dateStr} <span class="mx-1">•</span> <i class="far fa-clock"></i> ${timeStr}
+                                </div>
+                            </div>
+                            <h3 class="heading-font text-lg md:text-xl font-bold text-slate-800 mb-3 leading-tight group-hover:text-indigo-600 transition-colors">${art.title}</h3>
+                            <p class="text-sm text-slate-500 mb-6 line-clamp-2 leading-relaxed">${art.content.replace(/<[^>]+>/g, ' ')}</p>
+                            <div class="flex justify-end">
+                                <button onclick="readArticle('${art.id}')" class="${btnClass} text-sm font-semibold py-2.5 px-5 rounded-xl transition-all shadow-sm flex items-center">${btnIcon}</button>
+                            </div>
                         </div>
                     </div>
                 `;
             });
             container.innerHTML = htmlStr;
+            updateTimer(); 
         }
 
         function openSettingsModal() {
             document.getElementById('tgTokenInput').value = globalState.tgToken || "";
             document.getElementById('tgChatIdInput').value = globalState.tgChatId || "";
-            showModal('settings-modal');
+            showModal('settings-modal', 'settings-modal-content');
         }
 
         async function saveTelegramSettings() {
@@ -366,7 +516,7 @@
             const chatId = document.getElementById('tgChatIdInput').value.trim();
             const btn = document.getElementById('btn-save-tg');
             
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menyimpan...';
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Menyimpan...';
             btn.disabled = true;
             
             try {
@@ -379,57 +529,88 @@
                 const data = await res.json();
                 
                 if(data.success) {
-                    closeModal('settings-modal');
-                    showToast("Tersimpan", "Konfigurasi Telegram berhasil diperbarui.", "success");
+                    closeModal('settings-modal', 'settings-modal-content');
+                    showToast("Tersimpan!", "Sistem notifikasi berhasil diperbarui.", "success");
                     fetchState();
                 } else {
-                    showToast("Gagal", data.error || "Gagal menyimpan ke Database", "error");
+                    showToast("Gagal", data.error || "Kesalahan database", "error");
                 }
             } catch (err) {
-                showToast("Server Error", "Koneksi ke server bermasalah.", "error");
+                showToast("Error", "Koneksi ke server bermasalah.", "error");
             } finally {
-                btn.innerHTML = 'Simpan Konfigurasi';
+                btn.innerHTML = '<i class="fas fa-save"></i> Simpan Konfigurasi';
                 btn.disabled = false;
             }
         }
 
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        // Fungsi Animasi Modal yang lebih elegan
+        function showModal(containerId, contentId) { 
+            const container = document.getElementById(containerId);
+            const content = document.getElementById(contentId);
+            
+            container.classList.remove('hidden');
+            // Sedikit delay agar transisi CSS terbaca
+            setTimeout(() => {
+                container.classList.remove('opacity-0', 'pointer-events-none');
+                container.classList.add('opacity-100', 'pointer-events-auto');
+                if(content) {
+                    content.classList.remove('scale-95');
+                    content.classList.add('scale-100');
+                }
+            }, 10);
+        }
+
+        function closeModal(containerId, contentId) { 
+            const container = document.getElementById(containerId);
+            const content = document.getElementById(contentId || containerId + '-content');
+            
+            container.classList.remove('opacity-100', 'pointer-events-auto');
+            container.classList.add('opacity-0', 'pointer-events-none');
+            
+            if(content) {
+                content.classList.remove('scale-100');
+                content.classList.add('scale-95');
+            }
+            
+            setTimeout(() => { container.classList.add('hidden'); }, 300);
+        }
 
         function readArticle(id) {
             const article = globalState.articles.find(a => a.id === id);
             if (!article) return;
             
             document.getElementById('review-title').innerText = article.title;
+            document.getElementById('review-topic-badge').innerText = article.topic;
+            
             const contentDiv = document.getElementById('review-content');
             contentDiv.innerHTML = article.content;
             
-            // Re-apply Styling sementara untuk View Mode di Dashboard (hanya visual Tailwind)
-            contentDiv.querySelectorAll('p').forEach(p => p.classList.add('mb-4', 'text-gray-700', 'leading-relaxed', 'text-[15px]'));
-            contentDiv.querySelectorAll('h2').forEach(h => h.classList.add('text-xl', 'md:text-2xl', 'font-bold', 'text-gray-900', 'mt-8', 'mb-4', 'border-b', 'pb-2'));
-            contentDiv.querySelectorAll('h3').forEach(h => h.classList.add('text-lg', 'md:text-xl', 'font-bold', 'text-gray-800', 'mt-6', 'mb-3'));
-            contentDiv.querySelectorAll('ul').forEach(ul => ul.classList.add('list-disc', 'pl-6', 'mb-4', 'text-gray-700', 'space-y-2'));
+            // Re-apply Styling Profesional untuk Editor Reading View
+            contentDiv.querySelectorAll('p').forEach(p => p.className = 'mb-5 text-slate-700 leading-loose text-[15px]');
+            contentDiv.querySelectorAll('h2').forEach(h => h.className = 'heading-font text-2xl font-bold text-slate-900 mt-10 mb-4 pb-2 border-b border-slate-100');
+            contentDiv.querySelectorAll('h3').forEach(h => h.className = 'heading-font text-xl font-bold text-slate-800 mt-8 mb-3');
+            contentDiv.querySelectorAll('ul').forEach(ul => ul.className = 'list-disc pl-6 mb-6 text-slate-700 space-y-2 marker:text-indigo-400');
+            contentDiv.querySelectorAll('li').forEach(li => li.className = 'leading-relaxed pl-1');
 
             const actionsDiv = document.getElementById('review-actions');
             if (article.status === 'pending') {
                 actionsDiv.innerHTML = `
-                    <button onclick="rejectArticle('${id}')" class="px-4 py-2 md:px-5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 font-semibold transition text-sm md:text-base border border-red-100 flex-1 md:flex-none"><i class="fas fa-trash-alt mr-1"></i> Tolak</button>
-                    <button onclick="approveArticle('${id}')" class="px-4 py-2 md:px-5 rounded-lg text-white bg-green-600 hover:bg-green-700 font-semibold transition shadow-md shadow-green-200 text-sm md:text-base flex-1 md:flex-none"><i class="fas fa-check mr-1"></i> Setujui</button>
+                    <button onclick="rejectArticle('${id}')" class="px-5 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-semibold transition-colors text-sm border border-transparent hover:border-red-100"><i class="fas fa-trash-alt mr-2"></i> Buang Draf</button>
+                    <button onclick="approveArticle('${id}')" class="px-6 py-2.5 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-semibold transition-all shadow-lg shadow-indigo-200 text-sm flex items-center"><i class="fas fa-check mr-2"></i> Approve & Publish</button>
                 `;
             } else {
                 actionsDiv.innerHTML = `
-                    <button onclick="rejectArticle('${id}')" class="px-4 py-2 md:px-5 rounded-lg text-red-600 bg-red-50 hover:bg-red-100 font-semibold transition text-sm md:text-base flex-1 md:flex-none"><i class="fas fa-trash-alt mr-1"></i> Hapus</button>
-                    <button onclick="copyHTML()" class="px-4 py-2 md:px-5 rounded-lg text-white bg-blue-600 hover:bg-blue-700 font-semibold transition text-sm md:text-base flex-1 md:flex-none"><i class="fas fa-code mr-1"></i> Copy HTML</button>
+                    <button onclick="rejectArticle('${id}')" class="px-5 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-semibold transition-colors text-sm border border-transparent hover:border-red-100"><i class="fas fa-trash-alt mr-2"></i> Hapus Permanen</button>
+                    <button onclick="copyHTML()" class="px-6 py-2.5 rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 font-bold transition-all text-sm border border-indigo-200"><i class="fas fa-code mr-2"></i> Salin HTML Bersih</button>
                 `;
             }
-            showModal('review-modal');
+            showModal('review-modal', 'review-modal-content');
         }
 
         async function approveArticle(id) {
-            // BERSIHKAN KODE SEBELUM SIMPAN: Menghapus style tailwind agar tidak konflik di Blog/Wordpress
             const contentClone = document.getElementById('review-content').cloneNode(true);
             contentClone.querySelectorAll('*').forEach(el => {
-               if(!el.classList.contains('inline-source') && !el.classList.contains('fa-solid') && !el.classList.contains('fa-link')) {
+               if(!el.classList.contains('inline-source') && !el.classList.contains('fa-solid') && !el.classList.contains('fa-link') && !el.classList.contains('fa-bolt')) {
                    el.removeAttribute('class'); 
                }
             });
@@ -440,44 +621,43 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({id: id, content: finalContent})
             });
-            closeModal('review-modal');
-            showToast("Disetujui!", "Artikel telah dipindahkan ke tab Siap Publish.", "success");
+            closeModal('review-modal', 'review-modal-content');
+            showToast("Disetujui!", "Artikel telah dipindahkan ke tab Selesai.", "success");
             fetchState();
         }
 
         async function rejectArticle(id) {
-            if(confirm("Apakah Anda yakin ingin menghapus artikel ini?")) {
+            if(confirm("Apakah Anda yakin ingin menghapus artikel ini dari sistem?")) {
                 await fetch('/api/articles/reject', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id}) });
-                closeModal('review-modal');
-                showToast("Dihapus", "Artikel berhasil dihapus dari sistem.", "info");
+                closeModal('review-modal', 'review-modal-content');
+                showToast("Terhapus", "Artikel berhasil dihapus.", "info");
                 fetchState();
             }
         }
 
         async function forceGenerate() {
             if (globalState.topics.length === 0) {
-                showToast("Peringatan", "Tambahkan Topik riset terlebih dahulu!", "error");
+                showToast("Perhatian", "Silakan tambahkan Bank Topik riset terlebih dahulu.", "error");
                 return;
             }
             
-            showToast("Memproses", "Menginstruksikan AI untuk memulai riset...", "info");
+            // Switch ke tab antrean agar user melihat prosesnya
+            switchTab('pending');
             
-            // Optimistic UI updates
             globalState.isBotWorking = true;
             globalState.taskStartTime = Date.now();
             startTimerIndicator();
+            renderArticles(globalState.articles.filter(a => a.status === 'pending')); // Panggil render langsung agar kartu muncul
             
             try {
                 const res = await fetch('/api/force', { method: 'POST' });
-                if (res.ok) {
-                    showToast("Sukses", "AI sedang meriset artikel.", "success");
-                } else {
+                if (!res.ok) {
                     const data = await res.json();
-                    showToast("Ditolak", data.error || "Gagal memaksa task", "error");
+                    showToast("Ditolak", data.error || "Gagal menjalankan task", "error");
                     fetchState(); 
                 }
             } catch (err) {
-                showToast("Error", "Gagal menghubungi server", "error");
+                showToast("Error", "Koneksi ke server backend gagal.", "error");
                 fetchState();
             }
         }
@@ -490,7 +670,7 @@
                 if(res.ok) {
                     input.value = '';
                     fetchState();
-                    showToast("Sukses", "Topik baru telah dimasukkan.", "success");
+                    showToast("Topik Ditambahkan", "AI sekarang akan meriset topik tersebut.", "success");
                 }
             }
         }
@@ -506,14 +686,12 @@
 
         async function toggleAutoPilot(status) {
             await fetch('/api/settings/autopilot', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status: status}) });
-            showToast("Auto-Pilot", `Bot Jurnalis 24 Jam ${status ? 'Diaktifkan' : 'Dimatikan'}`, status ? "success" : "info");
+            showToast("Auto-Pilot", `Jurnalis otomatis ${status ? 'telah diaktifkan' : 'dimatikan'}.`, status ? "success" : "info");
         }
 
         function copyHTML() {
-            // BERSIHKAN KODE SEBELUM COPY
             const contentClone = document.getElementById('review-content').cloneNode(true);
             contentClone.querySelectorAll('*').forEach(el => {
-               // Tetap pertahankan class untuk elemen kotak kutipan "inline-source" & icon
                if(!el.classList.contains('inline-source') && !el.classList.contains('fa-solid') && !el.classList.contains('fa-link')) {
                    el.removeAttribute('class'); 
                }
@@ -521,18 +699,30 @@
             const html = contentClone.innerHTML;
             
             navigator.clipboard.writeText(html);
-            showToast("Tersalin", "Kode HTML Bersih berhasil disalin. Siap di-paste ke Editor Blogger/Wordpress.", "success");
+            showToast("Berhasil Disalin!", "HTML bersih siap di-paste ke WordPress atau Blogger.", "success");
         }
 
         function showToast(title, message, type) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             
-            let color = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : 'bg-slate-800';
-            let icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+            let config = {
+                'success': { bg: 'bg-slate-900', icon: 'fa-check-circle', iconColor: 'text-emerald-400', border: 'border-slate-800' },
+                'error': { bg: 'bg-red-50', icon: 'fa-exclamation-triangle', iconColor: 'text-red-500', border: 'border-red-200' },
+                'info': { bg: 'bg-white', icon: 'fa-info-circle', iconColor: 'text-indigo-500', border: 'border-slate-200' }
+            }[type] || config['info'];
             
-            toast.className = `flex items-center p-3 md:p-4 rounded-xl shadow-2xl text-white transform transition-all duration-300 translate-x-full opacity-0 ${color} mb-2 w-72 md:w-80`;
-            toast.innerHTML = `<div class="mr-3 md:mr-4 text-xl md:text-2xl"><i class="fas ${icon}"></i></div><div><h4 class="font-bold text-xs md:text-sm tracking-wide leading-tight">${title}</h4><p class="text-[10px] md:text-xs mt-1 opacity-90 leading-tight">${message}</p></div>`;
+            const textColor = type === 'success' ? 'text-white' : 'text-slate-800';
+            const descColor = type === 'success' ? 'text-slate-400' : 'text-slate-500';
+            
+            toast.className = `flex items-start p-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-x-full opacity-0 ${config.bg} border ${config.border} w-80 md:w-96`;
+            toast.innerHTML = `
+                <div class="mt-0.5 mr-3 text-xl ${config.iconColor}"><i class="fas ${config.icon}"></i></div>
+                <div class="flex-1">
+                    <h4 class="heading-font font-bold text-sm tracking-wide ${textColor}">${title}</h4>
+                    <p class="text-xs mt-1 ${descColor} leading-relaxed">${message}</p>
+                </div>
+            `;
             
             container.appendChild(toast);
             
@@ -543,7 +733,7 @@
             setTimeout(() => {
                 toast.classList.add('opacity-0', 'translate-x-full');
                 setTimeout(() => toast.remove(), 300);
-            }, 4000);
+            }, 4500);
         }
     </script>
 </body>
