@@ -122,7 +122,7 @@
         <div class="flex-1 overflow-y-auto p-8 no-scrollbar" id="article-container"></div>
     </main>
 
-    <!-- Modal Pengaturan Telegram (Dark Theme sesuai screenshot) -->
+    <!-- Modal Pengaturan Telegram -->
     <div id="settings-modal" class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm hidden flex items-center justify-center z-50 transition-opacity">
         <div class="bg-[#111827] w-full max-w-md rounded-2xl shadow-2xl p-6 transform transition-all border border-slate-800">
             <div class="flex items-center mb-6">
@@ -189,6 +189,15 @@
             try {
                 const res = await fetch('/api/state');
                 const data = await res.json();
+                
+                // SISTEM KEAMANAN BARU: Cek jika server mengirimkan error database (500)
+                if (data.error) {
+                    document.getElementById('bot-status-badge').innerHTML = '<i class="fas fa-database text-red-500 mr-2"></i><span class="text-red-600 font-bold">Database Terputus</span>';
+                    document.getElementById('btn-force').disabled = true;
+                    document.getElementById('btn-force').classList.replace('bg-blue-600', 'bg-gray-400');
+                    return; // Berhenti di sini agar UI tidak crash
+                }
+
                 globalState = data;
 
                 document.getElementById('autopilot-toggle').checked = data.autoPilotOn;
@@ -223,7 +232,10 @@
                 document.getElementById('count-pending').innerText = pending.length;
                 document.getElementById('count-approved').innerText = approved.length;
                 renderArticles(currentTab === 'pending' ? pending : approved);
-            } catch (err) { console.error("Gagal koneksi ke server", err); }
+            } catch (err) { 
+                console.error("Gagal koneksi ke server", err); 
+                document.getElementById('bot-status-badge').innerHTML = '<i class="fas fa-wifi text-red-500 mr-2"></i><span class="text-red-600 font-bold">Koneksi Server Hilang</span>';
+            }
         }
 
         // Cek server setiap 3 detik
@@ -270,9 +282,7 @@
             });
         }
 
-        // --- SOLUSI BUG TELEGRAM ---
         function openSettingsModal() {
-            // Memastikan data diinput ke element dengan ID yang benar sesuai desain gelap
             document.getElementById('tgTokenInput').value = globalState.tgToken || "";
             document.getElementById('tgChatIdInput').value = globalState.tgChatId || "";
             showModal('settings-modal');
@@ -283,24 +293,36 @@
             const chatId = document.getElementById('tgChatIdInput').value;
             const btn = document.getElementById('btn-save-tg');
             
-            btn.innerText = "Loading...";
+            btn.innerText = "Menyimpan...";
             btn.disabled = true;
             
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
                 const res = await fetch('/api/settings/telegram', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({tgToken: token, tgChatId: chatId})
+                    body: JSON.stringify({tgToken: token, tgChatId: chatId}),
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
                 const data = await res.json();
                 
                 if(data.success) {
                     closeModal('settings-modal');
                     showToast("Tersimpan", "Data Telegram berhasil disimpan.", "success");
-                    await fetchState(); // Sinkronkan data terbaru dari server
+                    await fetchState();
+                } else {
+                    showToast("Gagal", data.error || "Gagal menyimpan ke Database", "error");
                 }
             } catch (err) {
-                showToast("Error", "Gagal menyimpan data", "error");
+                if (err.name === 'AbortError') {
+                    showToast("Timeout Database", "Koneksi ke MongoDB terputus. Silakan cek IP MongoDB Atlas Anda.", "error");
+                } else {
+                    showToast("Server Error", "Database MongoDB menolak permintaan. Cek Network Access di Atlas.", "error");
+                }
             } finally {
                 btn.innerText = "Simpan";
                 btn.disabled = false;
@@ -367,7 +389,7 @@
                 fetchState();
             } else {
                 const data = await res.json();
-                showToast("Ditolak", data.error, "error");
+                showToast("Ditolak", data.error || "Gagal menghubungi database", "error");
             }
         }
 
