@@ -5,11 +5,11 @@ const cron = require('node-cron');
 
 const app = express();
 app.use(express.json());
-// Melayani file frontend HTML dari folder 'public'
-app.use(express.static('public')); 
+
+// PERBAIKAN: Menggunakan path.join agar Render 100% tidak akan "Not Found"
+app.use(express.static(path.join(__dirname, 'public'))); 
 
 const DB_FILE = path.join(__dirname, 'database.json');
-// Keamanan: API Key tidak lagi diekspos di Front-end, melainkan diamankan di server
 const API_KEY = process.env.GEMINI_API_KEY || "MASUKKAN_API_KEY_ANDA_DISINI";
 
 // Inisialisasi Database JSON sederhana jika belum ada
@@ -221,6 +221,11 @@ app.post('/api/articles/reject', (req, res) => {
     db.articles = db.articles.filter(a => a.id !== req.body.id);
     saveDB(db);
     res.json({ success: true });
+});
+
+// Route penangkap jika user mencoba akses yang tidak ada, paksa kembali ke index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
