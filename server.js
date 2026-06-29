@@ -94,45 +94,47 @@ async function generateArticleTask() {
     await saveDB(db);
 
     const topic = db.topics[Math.floor(Math.random() * db.topics.length)];
-    console.log(`[BOT] Memulai riset mendalam untuk topik: ${topic}...`);
+    console.log(`[BOT] Miwiti riset kanthi jero babagan topik: ${topic}...`);
 
     try {
         const prompt = `
-            Kamu adalah Jurnalis Game Senior dan Analis Industri.
-            Tugas: Lakukan riset MENDALAM di internet hari ini mengenai topik: "${topic}".
+            Sampeyan minangka Jurnalis Game Senior lan Analis Industri (Esports, Meta, Tech, Updates).
+            Tugas: Tindakake riset JERO ing internet dina iki babagan topik: "${topic}".
             
-            ATURAN KETAT:
-            1. FAKTA & DATA VALID: Hindari opini tak berdasar atau hoax. Harus dari info terupdate nyata.
-            2. SUMBER: DILARANG menggunakan Wikipedia. Cari informasi dari website resmi game, IGN, Polygon, atau situs terpercaya lainnya.
-            3. PANJANG: Artikel harus TEPAT antara 500 hingga 600 kata. 
-            4. KEASLIAN: Buat otentik, profesional, dan tajam.
-            5. FORMAT HTML: Gunakan <h2>, <h3>, <p>, <ul>, <li>, <strong>.
-            6. KUTIPAN INLINE (PENTING!): Sertakan sumber kutipan tepat di bawah paragraf krusial dengan HTML persis ini:
-               <div class="inline-source"><a href="URL_SUMBER_ASLI" target="_blank"><i class="fa-solid fa-link"></i> Sumber: Nama Website / Judul Referensi</a></div>
+            ATURAN KETAT (WAJIB DITURUTI):
+            1. FAKTA & DATA VALID: Aja nganggo opini tanpa dhasar, gosip, utawa hoax. Kudu saka info anyar sing nyata.
+            2. SUMBER: DILARANG nggunakake Wikipedia. Golek info saka situs web resmi game, IGN, Polygon, utawa situs sing bisa dipercaya liyane.
+            3. DAWA: Artikel kudu PAS antarane 500 nganti 600 tembung. Tindakake eksplorasi detail supaya dawane kecukupan.
+            4. KEASLIAN: Aja nggunakake tembung cithakan. Gawe asli, profesional, lan landhep.
+            5. FORMAT HTML: Gunakake <h2>, <h3>, <p>, <ul>, <li>, <strong> kanggo gaya. Aja nggunakake markdown backticks.
+            6. KUTIPAN INLINE (PENTING!): Kanggo saben data, fakta, utawa paragraf penting, WAJIB nyertakake sumber kutipan ing ngisore nggunakake tag HTML persis kaya iki:
+               <div class="inline-source"><a href="URL_SUMBER_ASLI" target="_blank"><i class="fa-solid fa-link"></i> Sumber: Jeneng Website / Irah-irahan Referensi</a></div>
             
-            KEMBALIKAN HANYA JSON MURNI DENGAN STRUKTUR INI:
+            BALIKAKE MUNG JSON MURNI KANTHI STRUKTUR IKI:
             {
-                "title": "Judul Artikel Profesional & Click-Worthy",
-                "content": "Isi artikel berformat HTML lengkap..."
+                "title": "Irah-irahan Artikel Profesional & Click-Worthy (Tanpa Tag)",
+                "content": "Isi artikel format HTML jangkep karo elemen .inline-source miturut aturan ing dhuwur."
             }
         `;
 
         const payload = {
             contents: [{ parts: [{ text: prompt }] }],
-            tools: [{ "google_search": {} }],
-            systemInstruction: { parts: [{ text: "Berikan format JSON murni yang dapat diparse." }] },
+            // PERBAIKAN: Format yang benar untuk tool Google Search di API Gemini
+            tools: [{ googleSearch: {} }], 
+            systemInstruction: { parts: [{ text: "Wenehi format JSON murni sing bisa diparse." }] },
             generationConfig: { responseMimeType: "application/json" }
         };
 
-        // PERBAIKAN: Menggunakan model Gemini 1.5 Pro yang lebih stabil
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`, {
+        // PERBAIKAN: Menggunakan model gemini-1.5-pro-latest yang lebih stabil dengan tools
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
-            throw new Error(`Google API menolak permintaan dengan status: ${response.status}`);
+            const errData = await response.text();
+            throw new Error(`Google API error ${response.status}: ${errData}`);
         }
 
         const data = await response.json();
