@@ -1,33 +1,33 @@
 const express = require('express');
 const path = require('path');
 const cron = require('node-cron');
-const mongoose = require('mongoose'); // Tambahan library database
+const mongoose = require('mongoose'); // Tambahan pustaka basis data
 
 const app = express();
 app.use(express.json());
 
-// Menggunakan path.join agar file public bisa diakses
+// Nggunakake path.join supaya berkas public bisa diakses
 app.use(express.static(path.join(__dirname, 'public'))); 
 
 const API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6LKVFBlIaG2bN0an_0i-GhbBT6ResjWfN1fnousol4Xxg";
-const MONGO_URI = process.env.MONGO_URI; // Akan kita atur dari Render
+const MONGO_URI = process.env.MONGO_URI; // Bakal diatur saka Render
 
-// --- SETUP DATABASE MONGODB ---
+// --- PENGATURAN BASIS DATA MONGODB ---
 if (!MONGO_URI) {
-    console.error("❌ Peringatan: MONGO_URI belum diatur di Render!");
+    console.error("❌ Pènget: MONGO_URI durung diatur ing Render!");
 } else {
     mongoose.connect(MONGO_URI)
-        .then(() => console.log('✅ Terhubung ke Cloud Database MongoDB'))
-        .catch(err => console.error('❌ Gagal koneksi MongoDB:', err));
+        .then(() => console.log('✅ Kasambung menyang Basis Data Cloud MongoDB'))
+        .catch(err => console.error('❌ Gagal nyambung MongoDB:', err));
 }
 
-// Skema Struktur Database di Cloud
+// Skema Struktur Basis Data ing Cloud
 const dbSchema = new mongoose.Schema({
     appId: { type: String, default: 'gamenews-bot' },
     topics: { type: [String], default: [
-        "E-Sports Update & Meta Hero Terbaru", 
-        "Review Teknologi Engine Game 2025", 
-        "Fakta dan Rahasia Lore Game AAA"
+        "Nganyari E-Sports & Meta Hero Paling Anyar", 
+        "Ulasan Teknologi Engine Game 2025", 
+        "Fakta lan Wadi Lore Game AAA"
     ]},
     articles: { type: Array, default: [] },
     dailyGenerated: { type: Number, default: 0 },
@@ -40,7 +40,7 @@ const dbSchema = new mongoose.Schema({
 
 const AppState = mongoose.model('AppState', dbSchema);
 
-// Fungsi Mengambil Data dari Cloud Database
+// Fungsi Njupuk Data saka Basis Data Cloud
 async function getDB() {
     let state = await AppState.findOne({ appId: 'gamenews-bot' });
     if (!state) {
@@ -49,7 +49,7 @@ async function getDB() {
     return state;
 }
 
-// Fungsi Menyimpan Data ke Cloud Database
+// Fungsi Nyimpen Data menyang Basis Data Cloud
 async function saveDB(state) {
     await state.save();
 }
@@ -57,10 +57,10 @@ async function saveDB(state) {
 async function sendTelegramAlert(article, db) {
     if (!db.tgToken || !db.tgChatId) return;
     
-    const msg = `🚨 *Artikel Baru Siap Direview!*\n\n` +
+    const msg = `🚨 *Artikel Anyar Siap Direview!*\n\n` +
                 `*Topik:* ${article.topic}\n` +
-                `*Judul:* ${article.title}\n\n` +
-                `Bot telah selesai meriset secara mendalam (Server 24/7). Silakan buka dashboard.`;
+                `*Irah-irahan:* ${article.title}\n\n` +
+                `Bot wis rampung riset kanthi jero (Server 24/7). Mangga mbukak dashboard.`;
     
     try {
         await fetch(`https://api.telegram.org/bot${db.tgToken}/sendMessage`, {
@@ -69,14 +69,14 @@ async function sendTelegramAlert(article, db) {
             body: JSON.stringify({ chat_id: db.tgChatId, text: msg, parse_mode: 'Markdown' })
         });
     } catch (e) {
-        console.error("Gagal mengirim Telegram:", e);
+        console.error("Gagal ngirim Telegram:", e);
     }
 }
 
 async function generateArticleTask() {
     let db = await getDB();
     
-    // Reset limit harian jika berganti hari
+    // Baleni watesan saben dina yen ganti dina
     const today = new Date().toLocaleDateString('id-ID');
     if (db.lastRunDate !== today) {
         db.dailyGenerated = 0;
@@ -84,43 +84,43 @@ async function generateArticleTask() {
         await saveDB(db);
     }
 
-    // Validasi Limit
+    // Validasi Watesan
     if (db.dailyGenerated >= 10) return;
     if (db.isBotWorking) return;
     if (db.topics.length === 0) return;
 
-    // Tandai bot sedang sibuk agar tidak double task
+    // Tandhani bot lagi repot supaya ora tumpuk tugas
     db.isBotWorking = true;
     await saveDB(db);
 
     const topic = db.topics[Math.floor(Math.random() * db.topics.length)];
-    console.log(`[BOT] Memulai riset mendalam untuk topik: ${topic}...`);
+    console.log(`[BOT] Miwiti riset kanthi jero babagan topik: ${topic}...`);
 
     try {
         const prompt = `
-            Kamu adalah Jurnalis Game Senior dan Analis Industri (Esports, Meta, Tech, Updates).
-            Tugas: Lakukan riset MENDALAM di internet hari ini mengenai topik: "${topic}".
+            Sampeyan minangka Jurnalis Game Senior lan Analis Industri (Esports, Meta, Tech, Updates).
+            Tugas: Tindakake riset JERO ing internet dina iki babagan topik: "${topic}".
             
-            ATURAN KETAT (WAJIB DIPATUHI):
-            1. FAKTA & DATA VALID: Hindari opini tak berdasar, rumor, atau hoax. Harus dari info terupdate nyata.
-            2. SUMBER: DILARANG menggunakan Wikipedia. Cari informasi dari website resmi game, IGN, Polygon, atau situs terpercaya lainnya.
-            3. PANJANG: Artikel harus TEPAT antara 500 hingga 600 kata. Lakukan eksplorasi detail agar panjangnya tercapai.
-            4. KEASLIAN: Jangan gunakan kata-kata template (misal: "Kesimpulannya", "Halo gamers"). Buat otentik, profesional, dan tajam. Bisa seputar tech engine terbaru atau game rilis tahun ini.
-            5. FORMAT HTML: Gunakan <h2>, <h3>, <p>, <ul>, <li>, <strong> untuk styling. Jangan gunakan markdown backticks.
-            6. KUTIPAN INLINE (PENTING!): Untuk setiap data, fakta, atau paragraf krusial, WAJIB sertakan sumber kutipan tepat di bawahnya menggunakan tag HTML persis seperti ini:
-               <div class="inline-source"><a href="URL_SUMBER_ASLI" target="_blank"><i class="fa-solid fa-link"></i> Sumber: Nama Website / Judul Referensi</a></div>
+            ATURAN KETAT (WAJIB DITURUTI):
+            1. FAKTA & DATA VALID: Aja nganggo opini tanpa dhasar, gosip, utawa hoax. Kudu saka info anyar sing nyata.
+            2. SUMBER: DILARANG nggunakake Wikipedia. Golek info saka situs web resmi game, IGN, Polygon, utawa situs sing bisa dipercaya liyane.
+            3. DAWA: Artikel kudu PAS antarane 500 nganti 600 tembung. Tindakake eksplorasi detail supaya dawane kecukupan.
+            4. KEASLIAN: Aja nggunakake tembung cithakan. Gawe asli, profesional, lan landhep.
+            5. FORMAT HTML: Gunakake <h2>, <h3>, <p>, <ul>, <li>, <strong> kanggo gaya. Aja nggunakake markdown backticks.
+            6. KUTIPAN INLINE (PENTING!): Kanggo saben data, fakta, utawa paragraf penting, WAJIB nyertakake sumber kutipan ing ngisore nggunakake tag HTML persis kaya iki:
+               <div class="inline-source"><a href="URL_SUMBER_ASLI" target="_blank"><i class="fa-solid fa-link"></i> Sumber: Jeneng Website / Irah-irahan Referensi</a></div>
             
-            KEMBALIKAN HANYA JSON MURNI DENGAN STRUKTUR INI:
+            BALIKAKE MUNG JSON MURNI KANTHI STRUKTUR IKI:
             {
-                "title": "Judul Artikel Profesional & Click-Worthy (Tanpa Tag)",
-                "content": "Isi artikel berformat HTML lengkap dengan elemen .inline-source sesuai aturan di atas."
+                "title": "Irah-irahan Artikel Profesional & Click-Worthy (Tanpa Tag)",
+                "content": "Isi artikel format HTML jangkep karo elemen .inline-source miturut aturan ing dhuwur."
             }
         `;
 
         const payload = {
             contents: [{ parts: [{ text: prompt }] }],
             tools: [{ "google_search": {} }],
-            systemInstruction: { parts: [{ text: "Berikan format JSON murni yang dapat diparse." }] },
+            systemInstruction: { parts: [{ text: "Wenehi format JSON murni sing bisa diparse." }] },
             generationConfig: { responseMimeType: "application/json" }
         };
 
@@ -144,20 +144,20 @@ async function generateArticleTask() {
                 date: new Date().toISOString()
             };
 
-            // Ambil state DB terbaru
+            // Njupuk data DB sing paling anyar
             db = await getDB();
             db.articles.push(newArticle);
             db.dailyGenerated++;
             await saveDB(db);
             
-            console.log(`[BOT] Sukses generate artikel: ${newArticle.title}`);
+            console.log(`[BOT] Sukses nggawe artikel: ${newArticle.title}`);
             sendTelegramAlert(newArticle, db);
         }
 
     } catch (error) {
-        console.error("[BOT] Error saat generate artikel:", error);
+        console.error("[BOT] Ana kesalahan nalika nggawe artikel:", error);
     } finally {
-        // Bebaskan status bot
+        // Bebasake status bot
         db = await getDB();
         db.isBotWorking = false;
         await saveDB(db);
@@ -166,33 +166,33 @@ async function generateArticleTask() {
 
 // Cron Job
 cron.schedule('*/30 * * * *', async () => {
-    // Pastikan koneksi DB tersedia sebelum check cron
+    // Priksa manawa koneksi DB kasedhiya sadurunge mriksa cron
     if (mongoose.connection.readyState !== 1) return; 
 
     const db = await getDB();
     if (db.autoPilotOn && db.dailyGenerated < 10 && !db.isBotWorking) {
-        console.log("[CRON] Auto-Pilot aktif, memicu task riset...");
+        console.log("[CRON] Auto-Pilot aktif, micu tugas riset...");
         generateArticleTask();
     }
 });
 
-// --- API ROUTES UNTUK DASHBOARD ---
+// --- RUTE API KANGGO DASHBOARD ---
 
 app.get('/api/state', async (req, res) => {
     try {
         const db = await getDB();
         res.json(db);
-    } catch (e) { res.status(500).json({error: "Database error"}); }
+    } catch (e) { res.status(500).json({error: "Kesalahan basis data"}); }
 });
 
 app.post('/api/force', async (req, res) => {
     const db = await getDB();
-    if (db.isBotWorking) return res.status(400).json({ error: "Bot sedang sibuk" });
-    if (db.dailyGenerated >= 10) return res.status(400).json({ error: "Limit Harian Tercapai" });
-    if (db.topics.length === 0) return res.status(400).json({ error: "Topik kosong" });
+    if (db.isBotWorking) return res.status(400).json({ error: "Bot lagi repot" });
+    if (db.dailyGenerated >= 10) return res.status(400).json({ error: "Watesan Saben Dina Wis Tekan" });
+    if (db.topics.length === 0) return res.status(400).json({ error: "Topik kothong" });
     
     generateArticleTask();
-    res.json({ message: "Task riset dipaksa mulai." });
+    res.json({ message: "Tugas riset dipeksa diwiwiti." });
 });
 
 app.post('/api/settings/autopilot', async (req, res) => {
@@ -203,11 +203,16 @@ app.post('/api/settings/autopilot', async (req, res) => {
 });
 
 app.post('/api/settings/telegram', async (req, res) => {
-    const db = await getDB();
-    db.tgToken = req.body.tgToken;
-    db.tgChatId = req.body.tgChatId;
-    await saveDB(db);
-    res.json({ success: true });
+    try {
+        const db = await getDB();
+        // Nganyari token lan chat ID kanthi fleksibel kanggo macem-macem antarmuka
+        db.tgToken = req.body.tgToken || req.body.botToken || req.body.token || db.tgToken;
+        db.tgChatId = req.body.tgChatId || req.body.chatId || db.tgChatId;
+        await saveDB(db);
+        res.json({ success: true, pesan: "Pengaturan kasil disimpen" });
+    } catch (e) {
+        res.status(500).json({ success: false, error: "Gagal nyimpen pengaturan" });
+    }
 });
 
 app.post('/api/topics/add', async (req, res) => {
@@ -249,4 +254,4 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server berjalan 24/7 di port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server mlaku 24/7 ing port ${PORT}`));
