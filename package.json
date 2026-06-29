@@ -1,0 +1,13 @@
+{
+"name": "gamenews-ai-bot",
+"version": "1.0.0",
+"description": "24/7 Autonomous Game News AI Journalist",
+"main": "server.js",
+"scripts": {
+"start": "node server.js"
+},
+"dependencies": {
+"express": "^4.18.2",
+"node-cron": "^3.0.3"
+}
+}
