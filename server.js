@@ -9,7 +9,7 @@ app.use(express.json());
 // Menggunakan path.join agar file public bisa diakses
 app.use(express.static(path.join(__dirname, 'public'))); 
 
-const API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6LKVFBlIaG2bN0an_0i-GhbBT6ResjWfN1fnousol4Xxg";
+const API_KEY = process.env.GEMINI_API_KEY || "MASUKKAN_API_KEY_ANDA_DISINI";
 const MONGO_URI = process.env.MONGO_URI; 
 
 // --- SETUP DATABASE MONGODB ---
@@ -119,13 +119,11 @@ async function generateArticleTask() {
 
         const payload = {
             contents: [{ parts: [{ text: prompt }] }],
-            // PERBAIKAN: Format yang benar untuk tool Google Search di API Gemini
             tools: [{ googleSearch: {} }], 
-            systemInstruction: { parts: [{ text: "Wenehi format JSON murni sing bisa diparse." }] },
-            generationConfig: { responseMimeType: "application/json" }
+            systemInstruction: { parts: [{ text: "WAJIB kembalikan format JSON murni. Dilarang menggunakan markdown backticks." }] }
+            // PERBAIKAN: generationConfig dihapus karena API Gemini menolak penggabungan googleSearch dengan responseMimeType.
         };
 
-        // PERBAIKAN: Menggunakan model gemini-1.5-pro-latest yang lebih stabil dengan tools
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -141,7 +139,10 @@ async function generateArticleTask() {
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
         
         if (text) {
-            const jsonResponse = JSON.parse(text);
+            // PERBAIKAN KRUSIAL: Bersihkan string dari simbol markdown AI sebelum dibaca sistem
+            const cleanText = text.replace(/```json/gi, '').replace(/```html/gi, '').replace(/```/g, '').trim();
+            const jsonResponse = JSON.parse(cleanText);
+            
             const newArticle = {
                 id: 'art-' + Date.now().toString(36),
                 title: jsonResponse.title,
