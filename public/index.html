@@ -319,7 +319,10 @@
                 
                 if (data.error) throw new Error("Database Terputus");
 
+                // PERBAIKAN: Selamatkan ingatan stopwatch agar tidak ter-reset setiap 4 detik
+                const currentStartTime = globalState.taskStartTime;
                 globalState = data;
+                globalState.taskStartTime = currentStartTime;
 
                 document.getElementById('autopilot-toggle').checked = data.autoPilotOn;
                 document.getElementById('limit-counter').innerText = data.dailyGenerated;
@@ -327,7 +330,7 @@
 
                 const btnForce = document.getElementById('btn-force');
                 if (data.isBotWorking) {
-                    // Update start time jika belum ada
+                    // Update start time HANYA jika benar-benar baru mulai
                     if(!globalState.taskStartTime) globalState.taskStartTime = Date.now();
                     startTimerIndicator();
                     btnForce.disabled = true;
