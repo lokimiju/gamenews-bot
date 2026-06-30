@@ -17,7 +17,13 @@ if (!MONGO_URI) {
     console.error("❌ Peringatan: MONGO_URI belum diatur di Render!");
 } else {
     mongoose.connect(MONGO_URI)
-        .then(() => console.log('✅ Terhubung ke Cloud Database MongoDB'))
+        .then(async () => {
+            console.log('✅ Terhubung ke Cloud Database MongoDB');
+            
+            // FITUR BARU: ANTI-MACET (Reset status saat server baru bangun/restart)
+            await AppState.updateMany({}, { isBotWorking: false });
+            console.log('🧹 Status bot berhasil direset (Anti-Macet Aktif)');
+        })
         .catch(err => console.error('❌ Gagal koneksi MongoDB:', err));
 }
 
