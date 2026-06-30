@@ -97,7 +97,6 @@ async function generateArticleTask() {
     console.log(`[BOT] Mulai riset mendalam tentang topik: ${topic}...`);
 
     try {
-        // PERBAIKAN: Instruksi dipertegas menggunakan Bahasa Indonesia agar JSON konsisten
         const prompt = `
             Kamu adalah Jurnalis Game Senior dan Analis Industri.
             Tugas: Lakukan riset MENDALAM di internet hari ini mengenai topik: "${topic}".
@@ -123,7 +122,8 @@ async function generateArticleTask() {
             systemInstruction: { parts: [{ text: "Berikan balasan HANYA dalam bentuk JSON murni yang bisa di-parse. Jangan tambahkan kata pengantar atau markdown." }] }
         };
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`, {
+        // PERBAIKAN FINAL: Menggunakan model gemini-1.5-flash yang super cepat dan stabil untuk Search API
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -140,10 +140,8 @@ async function generateArticleTask() {
         if (text) {
             console.log("[BOT] Teks diterima dari AI. Memulai proses pembersihan...");
             
-            // PERBAIKAN KRUSIAL: Sistem Pembersih Teks Ekstra Kuat
             let cleanText = text.replace(/```json/gi, '').replace(/```html/gi, '').replace(/```/g, '').trim();
             
-            // Lacak kurung kurawal pembuka dan penutup untuk membuang teks sisa (jika AI tetap keras kepala)
             const firstBrace = cleanText.indexOf('{');
             const lastBrace = cleanText.lastIndexOf('}');
             
@@ -180,7 +178,6 @@ async function generateArticleTask() {
     } catch (error) {
         console.error("❌ [BOT ERROR] Gagal membuat artikel:", error.message);
     } finally {
-        // Kembalikan status bot menjadi standby apa pun yang terjadi (berhasil/gagal)
         db = await getDB();
         db.isBotWorking = false;
         await saveDB(db);
