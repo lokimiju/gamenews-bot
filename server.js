@@ -9,7 +9,7 @@ app.use(express.json());
 // Menggunakan path.join agar file public bisa diakses
 app.use(express.static(path.join(__dirname, 'public'))); 
 
-const API_KEY = process.env.GEMINI_API_KEY || "MASUKKAN_API_KEY_ANDA_DISINI";
+const API_KEY = process.env.GEMINI_API_KEY;
 const MONGO_URI = process.env.MONGO_URI; 
 
 // --- SETUP DATABASE MONGODB ---
@@ -124,7 +124,7 @@ async function generateArticleTask() {
             // PERBAIKAN: generationConfig dihapus karena API Gemini menolak penggabungan googleSearch dengan responseMimeType.
         };
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
