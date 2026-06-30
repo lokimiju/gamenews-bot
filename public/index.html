@@ -3,241 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GameNews AI - Dashboard Jurnalis</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)" rel="stylesheet">
-    <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap)" rel="stylesheet">
+    <title>GameNews AI - Editor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0b0f19; color: #e2e8f0; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
         
-        .article-content h2 { font-size: 1.5rem; font-weight: 600; margin-top: 1rem; color: #f1f5f9; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; }
-        .article-content p { margin-bottom: 1rem; color: #cbd5e1; }
-        .article-content .inline-source { background: rgba(30, 41, 59, 0.8); border-left: 3px solid #3b82f6; padding: 0.6rem 1rem; border-radius: 0.375rem; font-size: 0.85rem; margin-bottom: 1rem; }
-        .article-content .inline-source a { color: #60a5fa; text-decoration: none; font-weight: 500;}
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        h1, h2, h3, .heading-font { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        .inline-source { 
+            margin: 20px 0; padding: 14px 18px; 
+            background: linear-gradient(to right, #eff6ff, #ffffff);
+            border-left: 4px solid #4f46e5; 
+            border-radius: 0 12px 12px 0; font-size: 0.875rem; color: #334155;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .inline-source a { color: #4f46e5; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;}
+        .inline-source a:hover { color: #3730a3; text-decoration: underline; }
         
         @keyframes loading-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
         .progress-bar-animated { animation: loading-slide 1.5s infinite ease-in-out; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-backdrop { background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-sm md:text-base">
+<body class="text-slate-800 flex flex-col md:flex-row h-screen overflow-hidden selection:bg-indigo-200 selection:text-indigo-900">
 
-    <!-- Sidebar -->
-    <aside class="w-72 bg-[#0f172a] border-r border-gray-800 flex flex-col h-full z-30">
-        <div class="h-20 flex items-center px-6 border-b border-gray-800 bg-[#111827]">
-            <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center mr-3"><i class="fa-solid fa-satellite-dish text-white"></i></div>
-            <div><h1 class="text-lg font-bold text-white">GameNews<span class="text-blue-500">AI</span></h1></div>
+    <!-- Mobile Navbar -->
+    <div class="md:hidden flex items-center justify-between bg-slate-900 border-b border-slate-800 px-6 py-4 shadow-md z-30 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-bolt text-white text-sm"></i>
+            </div>
+            <h1 class="heading-font font-bold text-lg text-white tracking-tight">GameNews AI</h1>
         </div>
-        
-        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-6">
-            <div>
-                <ul class="space-y-1.5">
-                    <li><button onclick="navigate('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center px-4 py-3 bg-blue-600/10 text-blue-500 rounded-xl"><i class="fa-solid fa-chart-pie w-7 text-lg"></i> Overview</button></li>
-                    <li><button onclick="navigate('pending')" id="nav-pending" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-xl"><i class="fa-solid fa-inbox w-7 text-lg"></i> Perlu Direview</button></li>
-                    <li><button onclick="navigate('approved')" id="nav-approved" class="nav-btn w-full flex items-center px-4 py-3 text-gray-400 hover:bg-gray-800/50 hover:text-white rounded-xl"><i class="fa-solid fa-check-double w-7 text-lg"></i> Siap Publish</button></li>
-                </ul>
-            </div>
-            <div>
-                <p class="text-[0.7rem] uppercase text-gray-500 font-bold px-3 mb-2">Topik Riset</p>
-                <ul id="topic-list" class="space-y-2 px-2"></ul>
-                <div class="flex px-2 mt-2">
-                    <input type="text" id="new-topic" class="w-full bg-[#1e293b] text-sm border border-gray-700 rounded-l-lg px-3 py-2 text-white outline-none" placeholder="Tambah...">
-                    <button onclick="addTopic()" class="bg-blue-600 text-white px-3.5 rounded-r-lg"><i class="fa-solid fa-plus"></i></button>
-                </div>
-            </div>
-        </nav>
+        <button onclick="toggleMobileMenu()" class="text-slate-300 hover:text-white focus:outline-none transition"><i class="fas fa-bars text-2xl"></i></button>
+    </div>
+    <div id="mobile-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 glass-backdrop z-40 opacity-0 pointer-events-none transition-opacity duration-300 md:hidden"></div>
 
-        <div class="p-5 border-t border-gray-800 bg-[#111827]">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <i class="fa-solid fa-robot text-gray-400 text-2xl mr-3" id="bot-icon"></i>
-                    <div><p class="text-sm font-bold text-white leading-none">Bot Status</p><p id="bot-status-text" class="text-xs text-gray-500">Standby</p></div>
+    <!-- Sidebar Kiri -->
+    <aside id="sidebar" class="w-80 bg-slate-900 text-slate-300 shadow-2xl flex flex-col z-50 absolute md:relative h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out border-r border-slate-800">
+        <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-bolt text-white text-xl"></i>
                 </div>
-                <button onclick="showModal('settings-modal')" class="text-gray-500 hover:text-white p-2 bg-gray-800 rounded-lg"><i class="fa-solid fa-gear"></i></button>
+                <div>
+                    <h1 class="heading-font font-bold text-xl text-white tracking-tight leading-tight">GameNews AI</h1>
+                    <p class="text-[10px] text-indigo-400 font-bold tracking-widest uppercase mt-0.5">Auto-Journalist</p>
+                </div>
             </div>
+            <button onclick="toggleMobileMenu()" class="md:hidden text-slate-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+        </div>
+
+        <div class="p-6 flex-1 overflow-y-auto">
+            <!-- Server Status -->
+            <div class="bg-slate-800/50 border border-slate-700/50 p-5 rounded-2xl mb-8 relative overflow-hidden">
+                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fas fa-server"></i> Status Engine</h3>
+                <div id="bot-status-badge" class="flex items-center text-sm font-medium">
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-3 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+                    <span class="text-emerald-400 font-semibold">Sistem Idle</span>
+                </div>
+                <div id="bot-timer-container" class="hidden mt-5 pt-5 border-t border-slate-700/50">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-semibold text-indigo-400 flex items-center gap-2"><i class="fas fa-cog fa-spin"></i> Mengekstrak Data...</span>
+                        <span id="bot-timer-seconds" class="text-xs font-mono font-bold text-white bg-indigo-500/20 px-2.5 py-1 rounded-lg border border-indigo-500/30">00:00</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden relative"><div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full w-1/2 progress-bar-animated absolute left-0"></div></div>
+                </div>
+            </div>
+
+            <!-- Auto-Pilot -->
+            <div class="flex items-center justify-between bg-slate-800/30 border border-slate-700/50 p-4 rounded-2xl mb-8">
+                <div><h3 class="text-sm font-semibold text-white">Auto-Pilot 24/7</h3><p class="text-[11px] text-slate-400 mt-0.5">Jadwal riset otomatis</p></div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="autopilot-toggle" class="sr-only peer" onchange="toggleAutoPilot(this.checked)">
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500 shadow-inner"></div>
+                </label>
+            </div>
+
+            <!-- Topik -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><i class="fas fa-layer-group"></i> Bank Topik</h3>
+                    <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 text-[10px] px-2 py-0.5 rounded-md font-bold" id="topic-count">0</span>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="new-topic" placeholder="Ketik topik baru..." class="flex-1 bg-slate-900 text-sm border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500">
+                    <button onclick="addTopic()" class="bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-500"><i class="fas fa-plus"></i></button>
+                </div>
+                <ul id="topic-list" class="space-y-2"></ul>
+            </div>
+        </div>
+
+        <div class="p-5 border-t border-slate-800 bg-slate-900/50">
+            <button onclick="showModal('settings-modal', 'settings-modal-content')" class="w-full flex items-center justify-center gap-2 bg-slate-800 border border-slate-700 hover:border-slate-500 hover:bg-slate-700 text-slate-200 text-sm font-semibold py-3 rounded-xl transition shadow-sm">
+                <i class="fa-brands fa-telegram text-blue-400 text-lg"></i> Notifikasi Telegram
+            </button>
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col relative overflow-hidden bg-[#0b0f19]">
-        <header class="h-20 flex items-center justify-between px-6 border-b border-gray-800 bg-[#0b0f19]/80 z-10">
-            <h2 id="page-title" class="text-xl font-bold text-white">Overview</h2>
-            <div class="flex items-center space-x-3">
-                <div class="flex items-center bg-[#1e293b] border border-gray-700 rounded-xl p-1.5 pr-4">
-                    <button id="toggle-autopilot" onclick="toggleAutoPilot()" class="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-600 mr-3 transition-colors">
-                        <span id="autopilot-knob" class="inline-block h-4 w-4 translate-x-1 rounded-full bg-white transition-transform"></span>
-                    </button>
-                    <span class="text-sm font-semibold text-gray-300">Auto-Pilot</span>
+    <!-- Konten Utama -->
+    <main class="flex-1 flex flex-col h-full relative bg-[#f8fafc]">
+        <header class="bg-white px-6 md:px-10 py-5 md:py-6 flex justify-between items-center z-10 flex-shrink-0 sticky top-0 shadow-sm">
+            <div>
+                <h2 class="heading-font text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">Meja Redaksi</h2>
+                <p class="text-sm text-slate-500 mt-1 hidden md:block">Kelola dan tinjau artikel yang dihasilkan AI hari ini.</p>
+            </div>
+            <div class="flex items-center gap-5">
+                <div class="text-right border-r border-slate-200 pr-5 hidden md:block">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Limit API Harian</p>
+                    <p class="text-lg font-extrabold text-slate-800 mt-0.5"><span id="limit-counter" class="text-indigo-600">0</span> <span class="text-slate-400 text-sm font-medium">/ 10</span></p>
                 </div>
-                <button onclick="forceBotNow()" id="btn-force-bot" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all"><i class="fa-solid fa-bolt text-yellow-300 mr-2"></i> Paksa Riset</button>
+                <button onclick="forceGenerate()" id="btn-force" class="bg-slate-900 hover:bg-indigo-600 text-white text-sm font-semibold py-3 px-5 md:px-6 rounded-xl shadow-lg shadow-slate-200 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span class="hidden md:inline">Generate Artikel</span>
+                </button>
             </div>
         </header>
-        <div id="content-area" class="flex-1 overflow-y-auto p-6 lg:p-10"></div>
+
+        <div class="px-6 md:px-10 py-4 flex-shrink-0">
+            <div class="bg-white rounded-2xl p-2 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-2 justify-between items-center">
+                <div class="flex w-full md:w-auto p-1 bg-slate-50 rounded-xl border border-slate-100">
+                    <button onclick="switchTab('pending')" id="tab-pending" class="flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-indigo-700 bg-white shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-inbox"></i> Antrean <span id="count-pending" class="bg-indigo-100 text-indigo-700 py-0.5 px-2 rounded-md text-[10px] font-bold ml-1">0</span>
+                    </button>
+                    <button onclick="switchTab('approved')" id="tab-approved" class="flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-slate-500 hover:text-slate-700 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check-double"></i> Selesai <span id="count-approved" class="bg-slate-200 text-slate-600 py-0.5 px-2 rounded-md text-[10px] font-bold ml-1">0</span>
+                    </button>
+                </div>
+                <div class="flex w-full md:w-auto gap-2">
+                    <div class="relative flex-1 md:w-64">
+                        <i class="fas fa-search absolute left-3.5 top-3 text-slate-400"></i>
+                        <input type="text" id="searchFilter" oninput="applyFilters()" placeholder="Cari artikel..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-6 md:px-10 py-2 pb-10" id="article-container">
+            <div class="flex justify-center items-center h-full"><i class="fas fa-circle-notch fa-spin text-3xl text-indigo-500"></i></div>
+        </div>
     </main>
 
-    <!-- Modals & Toasts -->
-    <div id="review-modal" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-6">
-        <div class="bg-[#0f172a] rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col border border-gray-700">
-            <div class="p-6 border-b border-gray-800 flex justify-between"><h2 id="modal-title" class="text-xl font-bold text-white">Review</h2><button onclick="closeModal('review-modal')" class="text-white"><i class="fa-solid fa-times text-xl"></i></button></div>
-            <div class="flex-1 p-8 overflow-y-auto article-content bg-[#1e293b]/30 outline-none" id="modal-article-body"></div>
-            <div class="p-6 border-t border-gray-800 bg-[#0f172a]" id="modal-actions"></div>
-        </div>
-    </div>
-
-    <div id="settings-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center">
-        <div class="bg-[#0f172a] rounded-2xl w-full max-w-md border border-gray-700">
-            <div class="p-6 border-b border-gray-800 flex justify-between"><h2 class="text-xl font-bold text-white"><i class="fa-brands fa-telegram text-blue-400"></i> Telegram</h2><button onclick="closeModal('settings-modal')" class="text-white"><i class="fa-solid fa-times"></i></button></div>
-            <div class="p-6 space-y-4">
-                <input type="password" id="tg-token" class="w-full bg-[#1e293b] border border-gray-700 rounded-lg px-4 py-2 text-white outline-none" placeholder="Bot Token">
-                <input type="text" id="tg-chatid" class="w-full bg-[#1e293b] border border-gray-700 rounded-lg px-4 py-2 text-white outline-none" placeholder="Chat ID">
+    <!-- Modals -->
+    <div id="settings-modal" class="fixed inset-0 glass-backdrop hidden flex items-center justify-center z-[60] opacity-0 pointer-events-none transition-opacity">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 transform scale-95 transition-all" id="settings-modal-content">
+            <div class="flex items-center mb-8">
+                <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mr-4 text-blue-500 text-2xl"><i class="fa-brands fa-telegram"></i></div>
+                <div><h3 class="heading-font text-xl font-bold text-slate-800">Bot Telegram</h3><p class="text-xs text-slate-500 mt-1">Notifikasi langsung ke HP Anda.</p></div>
             </div>
-            <div class="p-5 flex justify-end gap-3 border-t border-gray-800"><button onclick="closeModal('settings-modal')" class="text-gray-400">Batal</button><button onclick="saveTg()" class="bg-blue-600 text-white px-5 py-2 rounded-lg">Simpan</button></div>
+            <div class="space-y-5">
+                <div><label class="text-xs font-bold text-slate-500 uppercase block mb-2">Token Bot</label><input type="text" id="tgTokenInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none"></div>
+                <div><label class="text-xs font-bold text-slate-500 uppercase block mb-2">Chat ID</label><input type="text" id="tgChatIdInput" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none"></div>
+                <div class="flex justify-end gap-3 pt-4"><button onclick="closeModal('settings-modal')" class="px-5 py-2 text-slate-500">Batal</button><button onclick="saveTelegramSettings()" class="bg-blue-500 text-white py-2 px-6 rounded-xl font-bold">Simpan</button></div>
+            </div>
         </div>
     </div>
 
-    <div id="toast-container" class="fixed bottom-6 right-6 z-[60] flex flex-col space-y-3"></div>
+    <div id="review-modal" class="fixed inset-0 glass-backdrop hidden flex items-center justify-center z-[60] md:p-6 opacity-0 pointer-events-none transition-opacity">
+        <div class="bg-white w-full max-w-5xl h-full md:h-[90vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden transform scale-95 transition-all" id="review-modal-content">
+            <div class="px-8 py-5 border-b border-slate-100 flex justify-between items-center bg-white z-10"><div class="flex-1 pr-6"><span class="bg-indigo-50 text-indigo-600 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase mb-2 inline-block" id="review-topic-badge">Topik</span><h3 id="review-title" class="heading-font text-2xl font-bold text-slate-800">Judul Artikel</h3></div><button onclick="closeModal('review-modal')" class="text-slate-400 hover:text-red-500 bg-slate-50 w-10 h-10 rounded-full flex justify-center items-center"><i class="fas fa-times text-lg"></i></button></div>
+            <div class="p-8 overflow-y-auto flex-1 bg-slate-50"><div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-100 outline-none max-w-4xl mx-auto" id="review-content" contenteditable="true" spellcheck="false"></div></div>
+            <div class="px-6 py-4 border-t border-slate-200 bg-white flex justify-between items-center z-10"><div class="text-xs text-slate-400 font-medium"><i class="fas fa-info-circle mr-1"></i> Mode Editor Aktif</div><div class="flex gap-3" id="review-actions"></div></div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-6 right-6 z-[70] flex flex-col gap-3 pointer-events-none"></div>
 
     <script>
-        let appState = { currentView: 'dashboard', topics: [], articles: [], isBotWorking: false, autoPilotOn: false, dailyGenerated: 0, taskStartTime: 0, tgToken: '', tgChatId: '' };
+        // LOGIKA TERHUBUNG SERVER & TIMER DATABASE!
+        let currentTab = 'pending';
+        let globalState = { articles: [], topics: [], dailyGenerated: 0, isBotWorking: false, autoPilotOn: false, taskStartTime: 0 };
+        let timerInterval = null;
 
-        // 1. Fungsi Mengambil Data Asli dari Server Node.js
+        function updateTimer() {
+            if (!globalState.isBotWorking || !globalState.taskStartTime) return;
+            const elapsed = Math.floor((Date.now() - globalState.taskStartTime) / 1000);
+            if (elapsed < 0) return; 
+            
+            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+            
+            const sbTimer = document.getElementById('bot-timer-seconds');
+            if(sbTimer) sbTimer.innerText = `${m}:${s}`;
+            
+            const cardTimer = document.getElementById('card-timer-seconds');
+            if(cardTimer) cardTimer.innerText = `${m}:${s}`;
+        }
+
         async function fetchState() {
             try {
                 const res = await fetch('/api/state');
-                if (res.ok) {
-                    const data = await res.json();
-                    appState = { ...data, currentView: appState.currentView };
-                    updateUI();
+                const data = await res.json();
+
+                // UPDATE TIMER DARI SERVER: Pastikan waktu diambil asli dari MongoDB, bukan dari reset browser
+                if (data.isBotWorking) {
+                    globalState.taskStartTime = data.taskStartTime; 
+                    if (!timerInterval) {
+                        document.getElementById('bot-status-badge').innerHTML = '<div class="w-2.5 h-2.5 rounded-full bg-indigo-500 mr-3 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse"></div><span class="text-indigo-400 font-semibold tracking-wide">Meriset Artikel</span>';
+                        document.getElementById('bot-timer-container').classList.remove('hidden');
+                        timerInterval = setInterval(updateTimer, 1000);
+                    }
+                } else {
+                    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+                    document.getElementById('bot-status-badge').innerHTML = '<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-3 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div><span class="text-emerald-400 font-semibold tracking-wide">Sistem Idle</span>';
+                    document.getElementById('bot-timer-container').classList.add('hidden');
+                    document.getElementById('bot-timer-seconds').innerText = "00:00";
+                    globalState.taskStartTime = 0;
                 }
-            } catch (err) { console.error("Koneksi Server Gagal", err); }
-        }
 
-        setInterval(fetchState, 3000);
-        fetchState();
-
-        // 2. Timer Akurat dari Database (Anti-Reset Refresh)
-        setInterval(() => {
-            if (!appState.isBotWorking || !appState.taskStartTime) return;
-            const elapsed = Math.floor((Date.now() - appState.taskStartTime) / 1000);
-            if (elapsed < 0) return;
-            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-            const s = String(elapsed % 60).padStart(2, '0');
-            const timerEl = document.getElementById('card-timer-seconds');
-            if (timerEl) timerEl.innerText = `${m}:${s}`;
-        }, 1000);
-
-        // 3. Update UI
-        function updateUI() {
-            const btnF = document.getElementById('btn-force-bot');
-            if (appState.isBotWorking) {
-                document.getElementById('bot-icon').className = "fa-solid fa-brain text-indigo-400 fa-bounce text-2xl mr-3";
-                document.getElementById('bot-status-text').innerHTML = '<span class="text-indigo-400">Memproses...</span>';
-                if(btnF) { btnF.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Sedang Bekerja'; btnF.disabled = true; btnF.className = "bg-gray-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold cursor-not-allowed"; }
-            } else {
-                document.getElementById('bot-icon').className = "fa-solid fa-robot text-gray-400 text-2xl mr-3";
-                document.getElementById('bot-status-text').innerText = appState.autoPilotOn ? 'Auto-Pilot Aktif' : 'Standby';
-                if(btnF) { btnF.innerHTML = '<i class="fa-solid fa-bolt text-yellow-300 mr-2"></i> Paksa Riset'; btnF.disabled = false; btnF.className = "bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all"; }
-            }
-
-            const knob = document.getElementById('autopilot-knob'), toggleBg = document.getElementById('toggle-autopilot');
-            if(appState.autoPilotOn) { toggleBg.classList.replace('bg-gray-600', 'bg-blue-500'); knob.classList.replace('translate-x-1', 'translate-x-6'); } 
-            else { toggleBg.classList.replace('bg-blue-500', 'bg-gray-600'); knob.classList.replace('translate-x-6', 'translate-x-1'); }
-
-            const list = document.getElementById('topic-list'); list.innerHTML = '';
-            appState.topics.forEach((t, i) => list.innerHTML += `<li class="flex justify-between text-xs text-gray-300 bg-gray-800/30 p-2 rounded-lg"><span>${t}</span><button onclick="remTopic(${i})" class="text-red-400"><i class="fa-solid fa-trash"></i></button></li>`);
-            
-            navigate(appState.currentView);
-        }
-
-        // 4. API Calls ke Server
-        async function forceBotNow() {
-            if(appState.isBotWorking) return;
-            appState.isBotWorking = true; updateUI(); showToast("Mengirim Sinyal ke Server...");
-            await fetch('/api/force', { method: 'POST' }); fetchState();
-        }
-
-        async function toggleAutoPilot() {
-            await fetch('/api/settings/autopilot', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status: !appState.autoPilotOn}) }); fetchState();
-        }
-
-        async function addTopic() {
-            const val = document.getElementById('new-topic').value.trim();
-            if(val) { await fetch('/api/topics/add', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({topic: val}) }); document.getElementById('new-topic').value = ''; fetchState(); }
-        }
-
-        async function remTopic(i) { await fetch('/api/topics/remove', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({index: i}) }); fetchState(); }
-        
-        async function saveTg() {
-            await fetch('/api/settings/telegram', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({tgToken: document.getElementById('tg-token').value, tgChatId: document.getElementById('tg-chatid').value}) });
-            closeModal('settings-modal'); showToast("Disimpan", "success"); fetchState();
-        }
-
-        async function actionArt(type, id) {
-            if(type === 'approve') {
-                await fetch('/api/articles/approve', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: id, content: document.getElementById('modal-article-body').innerHTML}) });
-            } else {
-                await fetch('/api/articles/reject', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: id}) });
-            }
-            closeModal('review-modal'); fetchState();
-        }
-
-        // 5. Render Views
-        function navigate(view) {
-            appState.currentView = view;
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.replace('bg-blue-600/10', 'bg-transparent') || btn.classList.replace('text-blue-500', 'text-gray-400'));
-            document.getElementById(`nav-${view}`).classList.replace('text-gray-400', 'text-blue-500');
-            document.getElementById(`nav-${view}`).classList.add('bg-blue-600/10');
-            
-            document.getElementById('page-title').innerText = view === 'dashboard' ? 'Overview' : (view === 'pending' ? 'Perlu Direview' : 'Siap Publish');
-            
-            if(view === 'dashboard') {
-                const p = appState.articles.filter(a => a.status === 'pending').length;
-                document.getElementById('content-area').innerHTML = `
-                    <div class="grid grid-cols-2 gap-6"><div class="bg-[#1e293b] p-6 rounded-2xl"><p class="text-gray-400">Total Limit</p><h3 class="text-3xl text-white font-bold">${appState.dailyGenerated} / 10</h3></div>
-                    <div class="bg-[#1e293b] p-6 rounded-2xl"><p class="text-amber-500">Perlu Review</p><h3 class="text-3xl text-amber-400 font-bold">${p}</h3></div></div>
-                `;
-            } else {
-                let html = appState.isBotWorking && view === 'pending' ? `
-                    <div class="bg-indigo-900/40 border border-indigo-500/30 rounded-2xl p-6 mb-6 flex justify-between items-center relative overflow-hidden">
-                        <div><h3 class="text-xl font-bold text-white">Mesin AI Sedang Bekerja...</h3><p class="text-indigo-200">Data sedang ditarik dan ditulis oleh AI.</p></div>
-                        <div class="bg-black/30 p-4 rounded-xl text-center"><span id="card-timer-seconds" class="text-2xl font-mono text-white font-bold">00:00</span></div>
-                        <div class="absolute bottom-0 left-0 w-full h-1 bg-white/5"><div class="h-1 bg-indigo-500 progress-bar-animated w-1/2"></div></div>
-                    </div>` : '';
-
-                const list = appState.articles.filter(a => a.status === view).reverse();
-                if(list.length === 0 && !appState.isBotWorking) { document.getElementById('content-area').innerHTML = html + '<p class="text-gray-500 mt-10">Area Kosong.</p>'; return; }
+                globalState.isBotWorking = data.isBotWorking;
+                globalState.articles = data.articles;
+                globalState.topics = data.topics;
+                globalState.autoPilotOn = data.autoPilotOn;
+                globalState.dailyGenerated = data.dailyGenerated;
                 
-                html += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">${list.map(art => `
-                    <div class="bg-[#1e293b] rounded-2xl border border-gray-700 shadow-xl flex flex-col h-full">
-                        <div class="p-6 flex-1"><span class="text-xs bg-gray-800 text-blue-400 px-2 py-1 rounded-md mb-2 inline-block">${art.topic}</span>
-                        <h3 class="text-xl font-black text-white mb-2">${art.title}</h3><p class="text-sm text-gray-400 line-clamp-2">${art.content.replace(/<[^>]*>?/gm, '')}</p></div>
-                        <div class="bg-[#111827] p-5 border-t border-gray-800 flex justify-end">
-                            <button onclick="openArt('${art.id}')" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-bold w-full md:w-auto">Buka Artikel</button>
-                        </div>
-                    </div>`).join('')}</div>`;
-                document.getElementById('content-area').innerHTML = html;
-            }
+                document.getElementById('autopilot-toggle').checked = globalState.autoPilotOn;
+                document.getElementById('limit-counter').innerText = globalState.dailyGenerated;
+                document.getElementById('topic-count').innerText = globalState.topics.length;
+                document.getElementById('tgTokenInput').value = data.tgToken || "";
+                document.getElementById('tgChatIdInput').value = data.tgChatId || "";
+
+                const btnForce = document.getElementById('btn-force');
+                if (globalState.isBotWorking) {
+                    btnForce.disabled = true; btnForce.classList.replace('bg-slate-900', 'bg-slate-300'); btnForce.classList.replace('hover:bg-indigo-600', 'cursor-not-allowed');
+                    btnForce.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span class="hidden md:inline">Memproses...</span>';
+                } else {
+                    btnForce.disabled = false; btnForce.classList.replace('bg-slate-300', 'bg-slate-900'); btnForce.classList.replace('cursor-not-allowed', 'hover:bg-indigo-600');
+                    btnForce.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span class="hidden md:inline">Generate Artikel</span>';
+                }
+
+                const topicList = document.getElementById('topic-list'); topicList.innerHTML = '';
+                globalState.topics.forEach((t, i) => topicList.innerHTML += `<li class="flex items-center justify-between text-xs bg-slate-800/50 border border-slate-700 p-2.5 rounded-xl hover:border-indigo-500/50 group"><span class="font-medium text-slate-300 truncate"><i class="fas fa-hashtag text-slate-500 mr-2"></i> ${t}</span><button onclick="removeTopic(${i})" class="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100"><i class="fas fa-trash-alt"></i></button></li>`);
+
+                document.getElementById('count-pending').innerText = data.articles.filter(a => a.status === 'pending').length;
+                document.getElementById('count-approved').innerText = data.articles.filter(a => a.status === 'approved').length;
+                
+                applyFilters();
+            } catch (err) { console.error(err); }
         }
 
-        function openArt(id) {
-            const art = appState.articles.find(a => a.id === id); if(!art) return;
-            document.getElementById('modal-title').innerText = art.title;
-            const b = document.getElementById('modal-article-body'); b.innerHTML = art.content;
-            if (art.status === 'pending') {
-                b.setAttribute('contenteditable', 'true');
-                document.getElementById('modal-actions').innerHTML = `<div class="flex gap-3"><button onclick="actionArt('reject', '${id}')" class="w-full text-red-400 border border-red-500/30 py-3 rounded-xl font-bold">Hapus</button><button onclick="actionArt('approve', '${id}')" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold">Approve</button></div>`;
+        setInterval(fetchState, 3000); fetchState();
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const p = document.getElementById('tab-pending'), a = document.getElementById('tab-approved');
+            if(tab === 'pending') {
+                p.className = "flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-indigo-700 bg-white shadow-sm flex items-center justify-center gap-2";
+                a.className = "flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-slate-500 hover:text-slate-700 flex items-center justify-center gap-2 hover:bg-slate-100";
             } else {
-                b.removeAttribute('contenteditable');
-                document.getElementById('modal-actions').innerHTML = `<div class="flex gap-3"><button onclick="actionArt('reject', '${id}')" class="w-full text-red-400 border border-red-500/30 py-3 rounded-xl font-bold">Hapus</button><button onclick="copyHTML()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Copy HTML</button></div>`;
+                a.className = "flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-emerald-700 bg-white shadow-sm flex items-center justify-center gap-2";
+                p.className = "flex-1 md:flex-none px-6 py-2.5 font-semibold text-sm rounded-lg text-slate-500 hover:text-slate-700 flex items-center justify-center gap-2 hover:bg-slate-100";
             }
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('searchFilter').value.toLowerCase();
+            renderArticles(globalState.articles.filter(art => art.status === currentTab && (art.title.toLowerCase().includes(search) || art.topic.toLowerCase().includes(search))));
+        }
+
+        function renderArticles(articles) {
+            const container = document.getElementById('article-container');
+            let html = "";
+            
+            if (globalState.isBotWorking && currentTab === 'pending') {
+                html += `
+                    <div class="relative bg-gradient-to-br from-slate-900 to-indigo-900 rounded-2xl p-6 md:p-8 mb-6 shadow-xl text-white overflow-hidden border border-indigo-500/30">
+                        <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div class="flex-1"><div class="flex items-center gap-3 mb-3"><span class="w-8 h-8 rounded-full bg-indigo-500/30 flex justify-center items-center"><i class="fas fa-robot fa-bounce text-sm text-indigo-300"></i></span><span class="text-xs font-bold uppercase tracking-widest text-indigo-300">Menganalisis & Menyusun Draf</span></div>
+                            <h3 class="heading-font text-xl md:text-2xl font-bold text-white mb-2">Mencari referensi terbaik di internet...</h3><p class="text-sm text-indigo-200/80">AI Engine sedang memvalidasi fakta dan menuliskan artikel yang mendalam. Proses ini memakan waktu kurang lebih 1-2 menit.</p></div>
+                            <div class="bg-black/20 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col items-center justify-center min-w-[120px]"><i class="fas fa-stopwatch text-indigo-400 mb-1"></i><span id="card-timer-seconds" class="font-mono text-2xl font-bold text-white">00:00</span><span class="text-[10px] text-slate-400 uppercase mt-1">Elapsed Time</span></div>
+                        </div>
+                        <div class="absolute bottom-0 left-0 w-full h-1 bg-white/5"><div class="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 progress-bar-animated w-1/2"></div></div>
+                    </div>`;
+            }
+            
+            if(!articles.length && !globalState.isBotWorking) { container.innerHTML = html + '<div class="text-center mt-20 text-slate-400"><i class="fa-regular fa-folder-open text-6xl mb-4 opacity-50"></i><p>Belum ada artikel.</p></div>'; return; }
+            
+            html += articles.reverse().map(art => `
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 mb-5 relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full ${art.status === 'pending' ? 'bg-indigo-500' : 'bg-emerald-500'}"></div>
+                    <div class="pl-2"><div class="flex justify-between items-center mb-4"><span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase"><i class="fas fa-tag text-slate-400 mr-2"></i> ${art.topic}</span></div>
+                    <h3 class="heading-font text-lg md:text-xl font-bold text-slate-800 mb-3 group-hover:text-indigo-600 transition-colors">${art.title}</h3><p class="text-sm text-slate-500 mb-6 line-clamp-2">${art.content.replace(/<[^>]+>/g, ' ')}</p>
+                    <div class="flex justify-end"><button onclick="readArticle('${art.id}')" class="${art.status === 'pending' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border'} text-sm font-semibold py-2.5 px-5 rounded-xl hover:bg-indigo-600 hover:text-white transition-all"><i class="fas fa-book-open mr-2"></i> ${art.status === 'pending' ? 'Tinjau Draf' : 'Akses Konten'}</button></div></div>
+                </div>`).join('');
+            container.innerHTML = html;
+            updateTimer(); // Set timer awal
+        }
+
+        async function forceGenerate() {
+            if (globalState.topics.length === 0) return showToast("Gagal", "Bank topik kosong.", "error");
+            switchTab('pending');
+            try { await fetch('/api/force', { method: 'POST' }); fetchState(); showToast("Diproses", "AI sedang meriset artikel.", "info"); } 
+            catch (e) { showToast("Error", "Koneksi gagal", "error"); }
+        }
+
+        async function saveTelegramSettings() {
+            const t = document.getElementById('tgTokenInput').value, c = document.getElementById('tgChatIdInput').value;
+            await fetch('/api/settings/telegram', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tgToken: t, tgChatId: c}) });
+            closeModal('settings-modal'); showToast("Berhasil", "Telegram tersimpan.", "success"); fetchState();
+        }
+
+        function toggleMobileMenu() { const s = document.getElementById('sidebar'), o = document.getElementById('mobile-overlay'); s.classList.toggle('-translate-x-full'); o.classList.toggle('opacity-0'); o.classList.toggle('pointer-events-none'); }
+        async function addTopic() { const t = document.getElementById('new-topic').value; if(t) { await fetch('/api/topics/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic: t}) }); document.getElementById('new-topic').value = ''; fetchState(); } }
+        async function removeTopic(i) { await fetch('/api/topics/remove', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({index: i}) }); fetchState(); }
+        async function toggleAutoPilot(st) { await fetch('/api/settings/autopilot', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status: st}) }); fetchState(); }
+
+        function showModal(id) { const m = document.getElementById(id), c = document.getElementById(id+'-content'); m.classList.remove('hidden'); setTimeout(()=>{ m.classList.remove('opacity-0'); c.classList.remove('scale-95'); }, 10); }
+        function closeModal(id) { const m = document.getElementById(id), c = document.getElementById(id+'-content'); m.classList.add('opacity-0'); c.classList.add('scale-95'); setTimeout(()=>m.classList.add('hidden'), 300); }
+
+        function readArticle(id) {
+            const art = globalState.articles.find(a => a.id === id); if(!art) return;
+            document.getElementById('review-title').innerText = art.title; document.getElementById('review-topic-badge').innerText = art.topic;
+            const content = document.getElementById('review-content'); content.innerHTML = art.content;
+            
+            // Re-apply styling
+            content.querySelectorAll('p').forEach(p => p.className = 'mb-5 text-slate-700 leading-loose text-[15px]');
+            content.querySelectorAll('h2').forEach(h => h.className = 'heading-font text-2xl font-bold text-slate-900 mt-10 mb-4 pb-2 border-b border-slate-100');
+            content.querySelectorAll('h3').forEach(h => h.className = 'heading-font text-xl font-bold text-slate-800 mt-8 mb-3');
+            content.querySelectorAll('ul').forEach(ul => ul.className = 'list-disc pl-6 mb-6 text-slate-700 space-y-2');
+            
+            const acts = document.getElementById('review-actions');
+            if(art.status === 'pending') acts.innerHTML = `<button onclick="rejectArticle('${id}')" class="px-5 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-bold">Buang</button><button onclick="approveArticle('${id}')" class="px-6 py-2.5 rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 font-bold shadow-lg">Approve</button>`;
+            else acts.innerHTML = `<button onclick="rejectArticle('${id}')" class="px-5 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-bold">Hapus</button><button onclick="copyHTML()" class="px-6 py-2.5 rounded-xl text-indigo-700 bg-indigo-50 font-bold border border-indigo-200">Copy HTML</button>`;
             showModal('review-modal');
         }
 
-        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-        function showToast(msg) { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = "bg-gray-800 border-l-4 border-blue-500 p-4 rounded-xl text-white"; t.innerText = msg; c.appendChild(t); setTimeout(() => t.remove(), 3000); }
-        function copyHTML() { navigator.clipboard.writeText(document.getElementById('modal-article-body').innerHTML); showToast("Dicopy!"); }
+        async function approveArticle(id) { const clone = document.getElementById('review-content').cloneNode(true); clone.querySelectorAll('*').forEach(el=>{if(!el.classList.contains('inline-source') && !el.classList.contains('fa-solid')) el.removeAttribute('class');}); await fetch('/api/articles/approve', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:id, content:clone.innerHTML})}); closeModal('review-modal'); fetchState(); }
+        async function rejectArticle(id) { await fetch('/api/articles/reject', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:id})}); closeModal('review-modal'); fetchState(); }
+        function copyHTML() { const clone = document.getElementById('review-content').cloneNode(true); clone.querySelectorAll('*').forEach(el=>{if(!el.classList.contains('inline-source') && !el.classList.contains('fa-solid')) el.removeAttribute('class');}); navigator.clipboard.writeText(clone.innerHTML); showToast("Tercopy!", "success"); }
+
+        function showToast(title, type) { const c = document.getElementById('toast-container'), t = document.createElement('div'); t.className = `p-4 rounded-xl shadow-xl text-white ${type==='error'?'bg-red-500':'bg-slate-900'}`; t.innerText = title; c.appendChild(t); setTimeout(()=>t.remove(), 3000); }
     </script>
 </body>
 </html>
