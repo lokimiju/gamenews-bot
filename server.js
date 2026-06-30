@@ -21,26 +21,29 @@ if (!MONGO_URI) {
         .catch(err => console.error('❌ Gagal koneksi MongoDB:', err));
 }
 
-// Skema Struktur Database di Cloud
+// Skema Struktur Database di Cloud (DITAMBAHKAN: taskStartTime)
 const dbSchema = new mongoose.Schema({
     appId: { type: String, default: 'gamenews-bot' },
-    topics: { type: [String], default: [] },
+    topics: { type: [String], default: [
+        "E-Sports Update & Meta Hero Terbaru", 
+        "Review Teknologi Engine Game", 
+        "Fakta dan Rahasia Lore Game AAA"
+    ]},
     articles: { type: Array, default: [] },
     dailyGenerated: { type: Number, default: 0 },
     lastRunDate: { type: String, default: () => new Date().toLocaleDateString('id-ID') },
     tgToken: { type: String, default: "" },
     tgChatId: { type: String, default: "" },
     autoPilotOn: { type: Boolean, default: false },
-    isBotWorking: { type: Boolean, default: false }
+    isBotWorking: { type: Boolean, default: false },
+    taskStartTime: { type: Number, default: 0 } // <-- Menyimpan ingatan timer ke Database
 });
 
 const AppState = mongoose.model('AppState', dbSchema);
 
 async function getDB() {
     let state = await AppState.findOne({ appId: 'gamenews-bot' });
-    if (!state) {
-        state = await AppState.create({ appId: 'gamenews-bot' });
-    }
+    if (!state) state = await AppState.create({ appId: 'gamenews-bot' });
     return state;
 }
 
@@ -57,14 +60,13 @@ async function sendTelegramAlert(article, db) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: db.tgChatId, text: msg, parse_mode: 'Markdown' })
         });
-    } catch (e) {
-        console.error("Gagal mengirim Telegram:", e);
-    }
+    } catch (e) { console.error("Gagal mengirim Telegram:", e); }
 }
 
 async function generateArticleTask() {
     let db = await getDB();
     const today = new Date().toLocaleDateString('id-ID');
+    
     if (db.lastRunDate !== today) {
         db.dailyGenerated = 0;
         db.lastRunDate = today;
@@ -74,65 +76,57 @@ async function generateArticleTask() {
     if (db.dailyGenerated >= 10 || db.isBotWorking || db.topics.length === 0) return;
 
     db.isBotWorking = true;
+    db.taskStartTime = Date.now(); // <-- Mencatat jam masuk kerja
     await saveDB(db);
 
     const topic = db.topics[Math.floor(Math.random() * db.topics.length)];
-    console.log(`[BOT] Mulai meriset topik: ${topic}...`);
+    console.log(`[BOT] Mulai riset mendalam tentang topik: ${topic}...`);
 
     try {
         const prompt = `
-Kamu adalah Jurnalis Game Senior dan Analis Industri.
-Tugas: Buatlah artikel MENDALAM hari ini mengenai topik: "${topic}".
-
-ATURAN KETAT (WAJIB DIPATUHI):
-1. FAKTA & DATA VALID: Harus dari informasi terbaru yang nyata.
-2. SUMBER: DILARANG menggunakan Wikipedia.
-3. PANJANG: Artikel harus informatif dan komprehensif.
-4. FORMAT HTML: Gunakan <h2>, <h3>, <p>, <ul>, <li> untuk styling (Jangan gunakan markdown tag \`\`\`).
-5. KUTIPAN INLINE (PENTING!): Sertakan sumber referensi di bawah paragraf menggunakan format ini:
-   <div class="inline-source"><a href="#" target="_blank"><i class="fa-solid fa-link"></i> Sumber: Nama Website Terpercaya</a></div>
-
-KEMBALIKAN HANYA OBJEK JSON MURNI TANPA KATA-KATA LAIN. Struktur harus persis seperti ini:
-{
-    "title": "Judul Artikel Profesional",
-    "content": "Isi artikel lengkap berformat HTML"
-}
-`;
+            Kamu adalah Jurnalis Game Senior dan Analis Industri.
+            Tugas: Buatlah artikel MENDALAM hari ini mengenai topik: "${topic}".
+            
+            ATURAN KETAT (WAJIB DIPATUHI):
+            1. FAKTA & DATA: Tulis informasi yang tajam, profesional, dan masuk akal.
+            2. PANJANG: Artikel harus berbobot (sekitar 400-500 kata).
+            3. FORMAT HTML: Gunakan <h2>, <h3>, <p>, <ul>, <li> untuk styling (JANGAN pakai tanda kutip miring \`\`\`).
+            4. KUTIPAN INLINE (PENTING!): Sertakan sumber referensi/kutipan di bawah paragraf menggunakan format ini:
+               <div class="inline-source"><a href="#" target="_blank"><i class="fa-solid fa-link"></i> Sumber Referensi Online</a></div>
+            
+            KEMBALIKAN HANYA OBJEK JSON MURNI SEPERTI INI:
+            {
+                "title": "Judul Artikel Profesional",
+                "content": "Isi artikel lengkap berformat HTML"
+            }
+        `;
 
         const payload = {
-            contents: [{ parts: [{ text: prompt }] }]
+            contents: [{ parts: [{ text: prompt }] }],
+            systemInstruction: { parts: [{ text: "Kembalikan HANYA format JSON murni. Dilarang menambah teks basa-basi." }] }
         };
 
-        // SISTEM AUTO-FALLBACK: Coba menggunakan model default Gemini Pro (Universally available)
-        let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
+        // PERBAIKAN: Upgrade ke Gemini 2.0 Flash (Anti Error 404)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`Google API Menolak (Status ${response.status}): ${errText}`);
-        }
-
+        if (!response.ok) throw new Error(`Google API error ${response.status}`);
+        
         const data = await response.json();
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
         
         if (text) {
-            console.log("[BOT] Teks diterima dari AI. Memulai proses pembersihan Regex...");
             let cleanText = text.replace(/```json/gi, '').replace(/```html/gi, '').replace(/```/g, '').trim();
             const firstBrace = cleanText.indexOf('{');
             const lastBrace = cleanText.lastIndexOf('}');
-            
-            if (firstBrace !== -1 && lastBrace !== -1) {
-                cleanText = cleanText.substring(firstBrace, lastBrace + 1);
-            }
+            if (firstBrace !== -1 && lastBrace !== -1) cleanText = cleanText.substring(firstBrace, lastBrace + 1);
 
             const jsonResponse = JSON.parse(cleanText);
             
-            if(!jsonResponse.title || !jsonResponse.content) {
-                throw new Error("AI tidak memberikan JSON yang valid.");
-            }
+            if(!jsonResponse.title || !jsonResponse.content) throw new Error("JSON tidak valid.");
 
             const newArticle = {
                 id: 'art-' + Date.now().toString(36),
@@ -148,17 +142,17 @@ KEMBALIKAN HANYA OBJEK JSON MURNI TANPA KATA-KATA LAIN. Struktur harus persis se
             db.dailyGenerated++;
             await saveDB(db);
             
-            console.log(`[BOT] Sukses! Artikel "${newArticle.title}" selesai.`);
+            console.log(`[BOT] Sukses menghasilkan artikel: ${newArticle.title}`);
             sendTelegramAlert(newArticle, db);
         } else {
-            throw new Error("Format respons dari AI kosong.");
+            throw new Error("Respons AI kosong.");
         }
-
     } catch (error) {
         console.error("❌ [BOT ERROR] Gagal membuat artikel:", error.message);
     } finally {
         db = await getDB();
         db.isBotWorking = false;
+        db.taskStartTime = 0; // <-- Hapus jam masuk setelah selesai
         await saveDB(db);
     }
 }
@@ -166,30 +160,33 @@ KEMBALIKAN HANYA OBJEK JSON MURNI TANPA KATA-KATA LAIN. Struktur harus persis se
 cron.schedule('*/30 * * * *', async () => {
     if (mongoose.connection.readyState !== 1) return; 
     const db = await getDB();
-    if (db.autoPilotOn && db.dailyGenerated < 10 && !db.isBotWorking) {
-        generateArticleTask();
-    }
+    if (db.autoPilotOn && db.dailyGenerated < 10 && !db.isBotWorking) generateArticleTask();
 });
 
 // --- API ROUTES ---
 app.get('/api/state', async (req, res) => {
     try {
         const db = await getDB();
+        
+        // PERBAIKAN: Sistem Anti-Nyangkut (Lepaskan jika bot nge-freeze lebih dari 3 menit)
+        if (db.isBotWorking && db.taskStartTime > 0 && (Date.now() - db.taskStartTime > 180000)) {
+            console.log("[SISTEM] Mendeteksi Bot Stuck. Mereset paksa...");
+            db.isBotWorking = false;
+            db.taskStartTime = 0;
+            await saveDB(db);
+        }
+        
         res.json(db);
     } catch (e) { res.status(500).json({error: "Database error"}); }
 });
 
 app.post('/api/force', async (req, res) => {
     const db = await getDB();
-    if (db.isBotWorking) return res.status(400).json({ error: "Bot sedang sibuk memproses" });
+    if (db.isBotWorking) return res.status(400).json({ error: "Bot sedang sibuk" });
     if (db.dailyGenerated >= 10) return res.status(400).json({ error: "Limit Harian Tercapai" });
     if (db.topics.length === 0) return res.status(400).json({ error: "Topik kosong" });
     
-    // Jangan biarkan user spam klik tombol paksa riset
-    db.isBotWorking = true;
-    await saveDB(db);
-    
-    generateArticleTask();
+    generateArticleTask(); 
     res.json({ message: "Task riset dipaksa mulai." });
 });
 
@@ -203,21 +200,16 @@ app.post('/api/settings/autopilot', async (req, res) => {
 app.post('/api/settings/telegram', async (req, res) => {
     try {
         const db = await getDB();
-        db.tgToken = req.body.tgToken || req.body.botToken || req.body.token || db.tgToken;
-        db.tgChatId = req.body.tgChatId || req.body.chatId || db.tgChatId;
+        db.tgToken = req.body.tgToken || db.tgToken;
+        db.tgChatId = req.body.tgChatId || db.tgChatId;
         await saveDB(db);
-        res.json({ success: true, pesan: "Pengaturan kasil disimpen" });
-    } catch (e) {
-        res.status(500).json({ success: false, error: "Gagal nyimpen pengaturan" });
-    }
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/topics/add', async (req, res) => {
     const db = await getDB();
-    if (req.body.topic) {
-        db.topics.push(req.body.topic);
-        await saveDB(db);
-    }
+    if (req.body.topic) { db.topics.push(req.body.topic); await saveDB(db); }
     res.json({ success: true });
 });
 
@@ -246,9 +238,7 @@ app.post('/api/articles/reject', async (req, res) => {
     res.json({ success: true });
 });
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+app.get('*', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server berjalan 24/7 di port ${PORT}`));
