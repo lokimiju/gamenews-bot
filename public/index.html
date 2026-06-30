@@ -189,7 +189,7 @@
                     <div class="p-6 flex-1 overflow-y-auto hidden lg:block">
                         <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700 mb-6">
                             <h3 class="text-sm uppercase text-gray-400 font-bold mb-2"><i class="fa-solid fa-robot mr-2 text-indigo-400"></i>Analisis Bot</h3>
-                            <p class="text-xs text-gray-400 leading-relaxed">Artikel ini dihasilkan melalui proses AI yang canggih.</p>
+                            <p class="text-xs text-gray-400 leading-relaxed">Artikel ini dihasilkan melalui proses AI yang canggih dari Server.</p>
                         </div>
                     </div>
                     <div class="p-6 border-t border-gray-800 bg-[#0f172a]" id="modal-actions"></div>
@@ -228,13 +228,23 @@
     <div id="toast-container" class="fixed bottom-6 right-6 z-[60] flex flex-col space-y-3 pointer-events-none"></div>
 
     <script>
-        let appState = { currentView: 'dashboard', topics: [], articles: [], isBotWorking: false, autoPilotOn: false, dailyGenerated: 0, tgToken: '', tgChatId: '', taskStartTime: 0 };
+        // TERHUBUNG PENUH KE SERVER NODE.JS (TIDAK ADA LAGI LOKAL STORAGE / API CALL DARI BROWSER)
+        let appState = { currentView: 'dashboard', topics: [], articles: [], isBotWorking: false, autoPilotOn: false, dailyGenerated: 0, tgToken: '', tgChatId: '' };
+        let taskStartTime = 0;
         let uiTimerInterval = null;
 
         async function fetchState() {
             try {
                 const res = await fetch('/api/state');
+                if (!res.ok) throw new Error("Server error");
                 const data = await res.json();
+                
+                // Deteksi jika bot baru saja mulai bekerja untuk menyalakan stopwatch
+                if (data.isBotWorking && !appState.isBotWorking) {
+                    taskStartTime = Date.now();
+                } else if (!data.isBotWorking) {
+                    taskStartTime = 0;
+                }
                 
                 const activeView = appState.currentView;
                 appState = { ...data, currentView: activeView };
@@ -248,10 +258,10 @@
         setInterval(fetchState, 3000);
         fetchState();
 
-        // ---------------- TIMER SYSTEM (DIPERBAIKI) ---------------- //
+        // ---------------- TIMER SYSTEM ---------------- //
         function updateStopwatch() {
-            if (!appState.isBotWorking || !appState.taskStartTime) return;
-            const elapsed = Math.floor((Date.now() - appState.taskStartTime) / 1000);
+            if (!appState.isBotWorking || !taskStartTime) return;
+            const elapsed = Math.floor((Date.now() - taskStartTime) / 1000);
             if (elapsed < 0) return;
             
             const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
@@ -297,21 +307,25 @@
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
 
+        function formatDate(isoString) {
+            const d = new Date(isoString);
+            return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
         // ---------------- FUNGSI INTERAKSI API SERVER ---------------- //
         async function forceBotNow() {
-            if(appState.isBotWorking) return showToast('Bot sedang dalam proses riset.', 'error');
+            if(appState.isBotWorking) return showToast('Bot sedang dalam proses riset. Harap tunggu.', 'error');
             if(appState.dailyGenerated >= 10) return showToast('Limit harian tercapai.', 'error');
             if(appState.topics.length === 0) return showToast('Topik riset masih kosong.', 'error');
 
             appState.isBotWorking = true; 
-            appState.taskStartTime = Date.now();
+            taskStartTime = Date.now();
             updateUIFromState();
-            showToast('Mengirim sinyal riset ke Server Render...', 'info');
+            showToast('Mengirim perintah riset ke Server...', 'info');
 
             try {
                 const res = await fetch('/api/force', { method: 'POST' });
-                if (res.ok) showToast("Server mulai memproses dengan Gemini AI!", "bot");
-                else {
+                if (!res.ok) {
                     const data = await res.json();
                     showToast("Ditolak Server: " + data.error, "error");
                 }
@@ -320,8 +334,8 @@
         }
 
         async function saveTelegramSettings() {
-            const tk = document.getElementById('tg-token').value;
-            const id = document.getElementById('tg-chatid').value;
+            const tk = document.getElementById('tg-token').value.trim();
+            const id = document.getElementById('tg-chatid').value.trim();
             await fetch('/api/settings/telegram', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({tgToken: tk, tgChatId: id}) });
             closeModal('settings-modal'); showToast('Notifikasi Telegram disimpan.', 'success'); fetchState();
         }
@@ -333,10 +347,13 @@
         }
 
         async function addTopic() {
-            const val = document.getElementById('new-topic-input').value.trim();
+            const input = document.getElementById('new-topic-input');
+            const val = input.value.trim();
             if(val) {
                 await fetch('/api/topics/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic: val}) });
-                document.getElementById('new-topic-input').value = ''; fetchState();
+                input.value = '';
+                fetchState();
+                showToast(`Topik baru ditambahkan.`, 'success');
             }
         }
 
@@ -419,14 +436,14 @@
             const p = appState.articles.filter(a => a.status === 'pending').length, a = appState.articles.filter(a => a.status === 'approved').length;
             document.getElementById('content-area').innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-[#1e293b] rounded-2xl p-6 shadow-lg"><p class="text-xs text-gray-400 font-bold mb-2">Total Artikel</p><h3 class="text-4xl font-black text-white">${appState.articles.length}</h3></div>
-                    <div class="bg-[#1e293b] rounded-2xl p-6 shadow-lg cursor-pointer hover:border-amber-500/50 border border-transparent" onclick="navigate('pending')"><p class="text-xs text-amber-500 font-bold mb-2">Perlu Review</p><h3 class="text-4xl font-black text-amber-400">${p}</h3></div>
-                    <div class="bg-[#1e293b] rounded-2xl p-6 shadow-lg cursor-pointer hover:border-green-500/50 border border-transparent" onclick="navigate('approved')"><p class="text-xs text-green-500 font-bold mb-2">Siap Publish</p><h3 class="text-4xl font-black text-green-400">${a}</h3></div>
+                    <div class="bg-[#1e293b] rounded-2xl p-6 shadow-lg border border-gray-800 relative overflow-hidden"><p class="text-xs text-gray-400 font-bold mb-2 uppercase tracking-wide">Total Artikel</p><h3 class="text-4xl font-black text-white relative z-10">${appState.articles.length}</h3><i class="fa-solid fa-layer-group text-8xl absolute -right-4 -bottom-4 text-blue-500/10"></i></div>
+                    <div class="bg-[#1e293b] rounded-2xl p-6 shadow-lg border border-amber-900/50 cursor-pointer hover:border-amber-500/50 relative overflow-hidden transition-colors" onclick="navigate('pending')"><p class="text-xs text-amber-500 font-bold mb-2 uppercase tracking-wide">Perlu Review</p><h3 class="text-4xl font-black text-amber-400 relative z-10">${p}</h3><i class="fa-solid fa-hourglass-half text-8xl absolute -right-4 -bottom-4 text-amber-500/10"></i></div>
+                    <div class="bg-[#1e293b] rounded-2xl p-6 shadow-lg border border-green-900/50 cursor-pointer hover:border-green-500/50 relative overflow-hidden transition-colors" onclick="navigate('approved')"><p class="text-xs text-green-500 font-bold mb-2 uppercase tracking-wide">Siap Publish</p><h3 class="text-4xl font-black text-green-400 relative z-10">${a}</h3><i class="fa-solid fa-check-double text-8xl absolute -right-4 -bottom-4 text-green-500/10"></i></div>
                 </div>
-                <div class="bg-[#1e293b] rounded-2xl border border-gray-700 p-6"><h3 class="text-lg font-bold text-white mb-4">Riwayat Artikel Server</h3>
-                    ${appState.articles.length === 0 ? '<p class="text-gray-500">Database masih kosong.</p>' : 
+                <div class="bg-[#1e293b] rounded-2xl border border-gray-700 shadow-xl overflow-hidden"><div class="p-6 border-b border-gray-800 bg-[#111827] flex justify-between items-center"><h3 class="text-lg font-bold text-white">Riwayat Server</h3></div>
+                    ${appState.articles.length === 0 ? '<div class="p-10 text-center text-gray-500"><i class="fa-solid fa-wind text-5xl mb-4 opacity-50"></i><p>Belum ada artikel.</p></div>' : 
                     `<ul class="divide-y divide-gray-800">${appState.articles.slice().reverse().slice(0,5).map(art => 
-                        `<li class="py-3 flex justify-between items-center"><div class="flex items-center"><div class="w-2.5 h-2.5 rounded-full ${art.status==='pending'?'bg-amber-500':'bg-green-500'} mr-3"></div><span class="text-sm font-bold text-gray-200 line-clamp-1">${art.title}</span></div></li>`
+                        `<li class="p-4 hover:bg-gray-800/50 transition-colors flex justify-between items-center"><div class="flex items-center"><div class="w-2 h-2 rounded-full ${art.status==='pending'?'bg-amber-500':'bg-green-500'} mr-3 shadow-[0_0_8px_currentColor]"></div><span class="text-sm font-bold text-gray-200 line-clamp-1">${art.title}</span></div> <span class="text-xs text-gray-500 hidden md:block">${formatDate(art.date)}</span></li>`
                     ).join('')}</ul>`}
                 </div>
             `;
@@ -447,8 +464,8 @@
                                     <span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-500/30 text-indigo-300"><i class="fas fa-robot fa-bounce text-sm"></i></span>
                                     <span class="text-xs font-bold uppercase tracking-widest text-indigo-300">Menganalisis & Menyusun Draf</span>
                                 </div>
-                                <h3 class="text-xl md:text-2xl font-bold text-white mb-2 leading-tight">Mencari referensi terbaik di internet...</h3>
-                                <p class="text-sm text-indigo-200/80 max-w-xl">AI Engine sedang mengumpulkan data terbaru dari internet, memvalidasi fakta, dan menuliskan artikel yang mendalam. Proses ini memakan waktu kurang lebih 1-2 menit.</p>
+                                <h3 class="text-xl md:text-2xl font-bold text-white mb-2 leading-tight">Server sedang memproses referensi dari AI...</h3>
+                                <p class="text-sm text-indigo-200/80 max-w-xl">AI Engine sedang memvalidasi fakta dan menuliskan artikel yang mendalam. Proses ini memakan waktu kurang lebih 30 detik hingga 2 menit tergantung antrean.</p>
                             </div>
                             
                             <!-- Timer Stopwatch di dalam Kartu -->
@@ -467,16 +484,16 @@
             const ca = document.getElementById('content-area');
             
             if(!list.length && !appState.isBotWorking) {
-                return ca.innerHTML = '<div class="text-center text-gray-500 mt-20"><i class="fa-solid fa-box-open text-6xl mb-4"></i><p>Area ini kosong.</p></div>';
+                return ca.innerHTML = '<div class="text-center text-gray-500 mt-20"><i class="fa-solid fa-box-open text-6xl mb-4 opacity-30"></i><p class="font-medium">Area ini kosong.</p></div>';
             }
             
             htmlStr += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">${list.map(art => `
-                <div class="bg-[#1e293b] rounded-2xl border border-gray-700 shadow-xl flex flex-col h-full group relative overflow-hidden">
+                <div class="bg-[#1e293b] rounded-2xl border border-gray-700 shadow-xl flex flex-col h-full group relative overflow-hidden transition-all hover:border-gray-500">
                     <div class="absolute top-0 left-0 w-1 h-full ${status === 'pending' ? 'bg-amber-500' : 'bg-green-500'}"></div>
-                    <div class="p-6 flex-1"><span class="text-[0.65rem] font-bold bg-gray-800 text-blue-400 px-2.5 py-1 rounded-md mb-3 inline-block">${art.topic}</span>
-                    <h3 class="text-xl font-black text-white mb-3">${art.title}</h3><p class="text-sm text-gray-400 line-clamp-3">${art.content.replace(/<[^>]*>?/gm, '')}</p></div>
+                    <div class="p-6 flex-1"><div class="flex justify-between items-start mb-3"><span class="text-[0.65rem] font-bold bg-gray-800 text-blue-400 px-2.5 py-1 rounded-md border border-gray-700">${art.topic}</span> <span class="text-xs text-gray-500">${formatDate(art.date).split(' ')[0]}</span></div>
+                    <h3 class="text-xl font-black text-white mb-3 leading-tight group-hover:text-blue-400 transition-colors">${art.title}</h3><p class="text-sm text-gray-400 line-clamp-3">${art.content.replace(/<[^>]*>?/gm, '')}</p></div>
                     <div class="bg-[#111827] p-5 border-t border-gray-800 flex justify-end">
-                        <button onclick="openArticleReview('${art.id}')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold w-full md:w-auto"><i class="fa-solid fa-book-open mr-2"></i> Review Konten</button>
+                        <button onclick="openArticleReview('${art.id}')" class="bg-blue-600 hover:bg-blue-500 border border-blue-500 text-white px-5 py-2.5 rounded-xl font-bold w-full md:w-auto shadow-lg shadow-blue-900/30 transition-all"><i class="fa-solid fa-book-open mr-2"></i> ${status === 'pending' ? 'Review Draf' : 'Akses Konten'}</button>
                     </div>
                 </div>`).join('')}</div>`;
                 
@@ -488,19 +505,20 @@
 
         function openArticleReview(id) {
             const art = appState.articles.find(a => a.id === id);
+            if (!art) return;
             document.getElementById('modal-title').textContent = art.title; document.getElementById('modal-category').textContent = art.topic;
             const body = document.getElementById('modal-article-body'); body.innerHTML = art.content;
             
             if (art.status === 'pending') {
                 body.setAttribute('contenteditable', 'true');
-                body.classList.add('outline-none', 'bg-[#1e293b]/30', 'p-4', 'rounded-xl');
-                body.insertAdjacentHTML('afterbegin', '<div id="temp-edit-info" class="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-300 text-sm"><i class="fa-solid fa-pen mr-2"></i> Teks dapat diedit langsung sebelum Approve.</div>');
-                document.getElementById('modal-actions').innerHTML = `<button onclick="approveArticle('${id}')" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl border border-green-500 mb-3"><i class="fa-solid fa-check-double mr-2"></i> Approve & Publish</button>
-                <button onclick="rejectArticle('${id}')" class="w-full text-red-400 hover:bg-red-500/10 font-bold py-3 rounded-xl border-2 border-red-500/30"><i class="fa-solid fa-trash-can mr-2"></i> Reject</button>`;
+                body.classList.add('outline-none', 'bg-[#1e293b]/30', 'p-4', 'rounded-xl', 'focus:ring-2', 'focus:ring-blue-500/30');
+                body.insertAdjacentHTML('afterbegin', '<div id="temp-edit-info" class="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-300 text-sm"><i class="fa-solid fa-pen mr-2"></i> Mode Editor Aktif: Teks dapat diedit langsung sebelum disetujui.</div>');
+                document.getElementById('modal-actions').innerHTML = `<button onclick="approveArticle('${id}')" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3.5 rounded-xl border border-green-500 mb-3 shadow-lg shadow-green-900/30 transition-transform active:scale-95"><i class="fa-solid fa-check-double mr-2"></i> Approve & Publish</button>
+                <button onclick="rejectArticle('${id}')" class="w-full text-red-400 hover:bg-red-500/10 font-bold py-3 rounded-xl border-2 border-red-500/30 transition-colors active:scale-95"><i class="fa-solid fa-trash-can mr-2"></i> Reject (Tolak & Hapus)</button>`;
             } else {
-                body.removeAttribute('contenteditable'); body.classList.remove('outline-none', 'bg-[#1e293b]/30', 'p-4', 'rounded-xl');
-                document.getElementById('modal-actions').innerHTML = `<button onclick="copyHTML()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl mb-3"><i class="fa-solid fa-copy mr-2"></i> Copy HTML</button>
-                <button onclick="rejectArticle('${id}')" class="w-full text-red-400 hover:bg-red-500/10 font-bold py-3 rounded-xl border border-red-500/30">Hapus Permanen</button>`;
+                body.removeAttribute('contenteditable'); body.classList.remove('outline-none', 'bg-[#1e293b]/30', 'p-4', 'rounded-xl', 'focus:ring-2', 'focus:ring-blue-500/30');
+                document.getElementById('modal-actions').innerHTML = `<button onclick="copyHTML()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl mb-3 border border-blue-500 shadow-lg shadow-blue-900/30 transition-transform active:scale-95"><i class="fa-solid fa-copy mr-2"></i> Copy HTML Lengkap</button>
+                <button onclick="rejectArticle('${id}')" class="w-full text-red-400 hover:bg-red-500/10 font-bold py-3 rounded-xl border border-red-500/30 transition-colors active:scale-95">Hapus Permanen</button>`;
             }
             showModal('review-modal');
         }
