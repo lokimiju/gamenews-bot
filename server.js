@@ -94,34 +94,33 @@ async function generateArticleTask() {
     await saveDB(db);
 
     const topic = db.topics[Math.floor(Math.random() * db.topics.length)];
-    console.log(`[BOT] Miwiti riset kanthi jero babagan topik: ${topic}...`);
+    console.log(`[BOT] Mulai riset mendalam tentang topik: ${topic}...`);
 
     try {
+        // PERBAIKAN: Instruksi dipertegas menggunakan Bahasa Indonesia agar JSON konsisten
         const prompt = `
-            Sampeyan minangka Jurnalis Game Senior lan Analis Industri (Esports, Meta, Tech, Updates).
-            Tugas: Tindakake riset JERO ing internet dina iki babagan topik: "${topic}".
+            Kamu adalah Jurnalis Game Senior dan Analis Industri.
+            Tugas: Lakukan riset MENDALAM di internet hari ini mengenai topik: "${topic}".
             
-            ATURAN KETAT (WAJIB DITURUTI):
-            1. FAKTA & DATA VALID: Aja nganggo opini tanpa dhasar, gosip, utawa hoax. Kudu saka info anyar sing nyata.
-            2. SUMBER: DILARANG nggunakake Wikipedia. Golek info saka situs web resmi game, IGN, Polygon, utawa situs sing bisa dipercaya liyane.
-            3. DAWA: Artikel kudu PAS antarane 500 nganti 600 tembung. Tindakake eksplorasi detail supaya dawane kecukupan.
-            4. KEASLIAN: Aja nggunakake tembung cithakan. Gawe asli, profesional, lan landhep.
-            5. FORMAT HTML: Gunakake <h2>, <h3>, <p>, <ul>, <li>, <strong> kanggo gaya. Aja nggunakake markdown backticks.
-            6. KUTIPAN INLINE (PENTING!): Kanggo saben data, fakta, utawa paragraf penting, WAJIB nyertakake sumber kutipan ing ngisore nggunakake tag HTML persis kaya iki:
-               <div class="inline-source"><a href="URL_SUMBER_ASLI" target="_blank"><i class="fa-solid fa-link"></i> Sumber: Jeneng Website / Irah-irahan Referensi</a></div>
+            ATURAN KETAT (WAJIB DIPATUHI):
+            1. FAKTA & DATA VALID: Harus dari informasi terbaru yang nyata.
+            2. SUMBER: DILARANG menggunakan Wikipedia. 
+            3. PANJANG: Artikel harus berbobot dan informatif.
+            4. FORMAT HTML: Gunakan <h2>, <h3>, <p>, <ul>, <li> untuk styling.
+            5. KUTIPAN INLINE (PENTING!): Sertakan sumber kutipan di bawah paragraf menggunakan format ini:
+               <div class="inline-source"><a href="URL_SUMBER_ASLI" target="_blank"><i class="fa-solid fa-link"></i> Sumber: Nama Website</a></div>
             
-            BALIKAKE MUNG JSON MURNI KANTHI STRUKTUR IKI:
+            KEMBALIKAN HANYA OBJEK JSON MURNI TANPA SIMBOL APAPUN SEPERTI INI:
             {
-                "title": "Irah-irahan Artikel Profesional & Click-Worthy (Tanpa Tag)",
-                "content": "Isi artikel format HTML jangkep karo elemen .inline-source miturut aturan ing dhuwur."
+                "title": "Judul Artikel Profesional",
+                "content": "Isi artikel lengkap berformat HTML"
             }
         `;
 
         const payload = {
             contents: [{ parts: [{ text: prompt }] }],
             tools: [{ googleSearch: {} }], 
-            systemInstruction: { parts: [{ text: "WAJIB kembalikan format JSON murni. Dilarang menggunakan markdown backticks." }] }
-            // PERBAIKAN: generationConfig dihapus karena API Gemini menolak penggabungan googleSearch dengan responseMimeType.
+            systemInstruction: { parts: [{ text: "Berikan balasan HANYA dalam bentuk JSON murni yang bisa di-parse. Jangan tambahkan kata pengantar atau markdown." }] }
         };
 
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`, {
@@ -139,10 +138,25 @@ async function generateArticleTask() {
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
         
         if (text) {
-            // PERBAIKAN KRUSIAL: Bersihkan string dari simbol markdown AI sebelum dibaca sistem
-            const cleanText = text.replace(/```json/gi, '').replace(/```html/gi, '').replace(/```/g, '').trim();
+            console.log("[BOT] Teks diterima dari AI. Memulai proses pembersihan...");
+            
+            // PERBAIKAN KRUSIAL: Sistem Pembersih Teks Ekstra Kuat
+            let cleanText = text.replace(/```json/gi, '').replace(/```html/gi, '').replace(/```/g, '').trim();
+            
+            // Lacak kurung kurawal pembuka dan penutup untuk membuang teks sisa (jika AI tetap keras kepala)
+            const firstBrace = cleanText.indexOf('{');
+            const lastBrace = cleanText.lastIndexOf('}');
+            
+            if (firstBrace !== -1 && lastBrace !== -1) {
+                cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+            }
+
             const jsonResponse = JSON.parse(cleanText);
             
+            if(!jsonResponse.title || !jsonResponse.content) {
+                throw new Error("AI tidak memberikan property title atau content yang valid.");
+            }
+
             const newArticle = {
                 id: 'art-' + Date.now().toString(36),
                 title: jsonResponse.title,
@@ -157,15 +171,16 @@ async function generateArticleTask() {
             db.dailyGenerated++;
             await saveDB(db);
             
-            console.log(`[BOT] Sukses generate artikel: ${newArticle.title}`);
+            console.log(`[BOT] Sukses menghasilkan artikel: ${newArticle.title}`);
             sendTelegramAlert(newArticle, db);
         } else {
-            throw new Error("Format respons dari AI kosong atau tidak sesuai.");
+            throw new Error("Format respons dari AI kosong.");
         }
 
     } catch (error) {
         console.error("❌ [BOT ERROR] Gagal membuat artikel:", error.message);
     } finally {
+        // Kembalikan status bot menjadi standby apa pun yang terjadi (berhasil/gagal)
         db = await getDB();
         db.isBotWorking = false;
         await saveDB(db);
@@ -190,7 +205,7 @@ app.get('/api/state', async (req, res) => {
 
 app.post('/api/force', async (req, res) => {
     const db = await getDB();
-    if (db.isBotWorking) return res.status(400).json({ error: "Bot sedang sibuk" });
+    if (db.isBotWorking) return res.status(400).json({ error: "Bot sedang sibuk memproses" });
     if (db.dailyGenerated >= 10) return res.status(400).json({ error: "Limit Harian Tercapai" });
     if (db.topics.length === 0) return res.status(400).json({ error: "Topik kosong" });
     
